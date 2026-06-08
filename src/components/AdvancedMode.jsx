@@ -28,7 +28,7 @@ export default function AdvancedMode(props) {
   });
   const { S, FUN, SIMPLE, updateGroup, setThird, onBracketPick, updateFun, updateSimple,
       serverData, onSubmit, adminUpdate, adminVerify, adminDelete, adminClearAll, loading,
-        fetchData, onReset, setS, setFUN, setSIMPLE, myName, setMyName, isAdmin, adminLogout } = props;
+        fetchData, onReset, setS, setFUN, setSIMPLE, myName, setMyName, isAdmin, adminLogout, adminPassword } = props;
 
   const randomPick = (arr) => arr[Math.floor(Math.random() * arr.length)] || null;
 
@@ -168,6 +168,9 @@ export default function AdvancedMode(props) {
           onSubmit={onSubmit}
           adminUpdate={adminUpdate}
           adminVerify={adminVerify}
+          adminLogout={adminLogout}
+          isAdmin={isAdmin}
+          adminPassword={adminPassword}
           adminDelete={adminDelete}
           adminClearAll={adminClearAll}
           loading={loading}

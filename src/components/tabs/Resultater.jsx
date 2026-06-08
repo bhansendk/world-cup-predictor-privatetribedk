@@ -113,9 +113,8 @@ function decodeImportText(rawText) {
   throw new Error('Kunne ikke aflæse import-teksten');
 }
 
-function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSubmit, loading, colleagues, serverData }) {
+function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onSubmit, loading, colleagues, serverData }) {
   const [pw, setPw] = useState('');
-  const [isAuthed, setIsAuthed] = useState(false);
   const [status, setStatus] = useState('');
   const [importName, setImportName] = useState('');
   const [importText, setImportText] = useState('');
@@ -137,36 +136,38 @@ function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSu
     }
     const res = await adminVerify(pw);
     if (res.ok) {
-      setIsAuthed(true);
+      setPw('');
       setStatus('✅ Logget ind som admin');
       return;
     }
-    setIsAuthed(false);
     setStatus('❌ ' + res.error);
   };
 
   const logout = () => {
-    setIsAuthed(false);
+    adminLogout();
+    setPw('');
     setStatus('');
   };
 
+  const activePw = adminPassword || pw;
+
   const handleSaveResults = async () => {
-    if (!isAuthed) {
+    if (!isAdmin) {
       setStatus('❌ Log ind først');
       return;
     }
-    const res = await adminUpdate(resultState, pw);
+    const res = await adminUpdate(resultState, activePw);
     if (res.ok) setStatus('✅ Resultater gemt!');
     else setStatus('❌ ' + res.error);
   };
 
   const handleDeleteAll = async () => {
-    if (!isAuthed) {
+    if (!isAdmin) {
       setStatus('❌ Log ind først');
       return;
     }
     if (!confirm('Slet alle deltagere?')) return;
-    const res = await adminClearAll(pw);
+    const res = await adminClearAll(activePw);
     if (res.ok) {
       setLocalColleagues([]);
       setStatus('✅ Alle slettet');
@@ -175,11 +176,11 @@ function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSu
   };
 
   const handleDeleteOne = async (name) => {
-    if (!isAuthed) {
+    if (!isAdmin) {
       setStatus('❌ Log ind først');
       return;
     }
-    const res = await adminDelete(name, pw);
+    const res = await adminDelete(name, activePw);
     if (res.ok) {
       setLocalColleagues(prev => prev.filter(c => c.name !== name));
       setStatus(`✅ ${name} slettet`);
@@ -188,7 +189,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSu
   };
 
   const handleImportText = async () => {
-    if (!isAuthed) {
+    if (!isAdmin) {
       setStatus('❌ Log ind først');
       return;
     }
@@ -269,7 +270,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSu
           onChange={e => setPw(e.target.value)}
           className="name-input"
         />
-        {!isAuthed ? (
+        {!isAdmin ? (
           <button className="btn-accent" onClick={handleLogin} disabled={loading}>🔐 Log ind</button>
         ) : (
           <button className="btn-ghost" onClick={logout} disabled={loading}>🔓 Log ud</button>
@@ -277,13 +278,13 @@ function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSu
         {status && <span className="status-msg">{status}</span>}
       </div>
 
-      {!isAuthed && (
+      {!isAdmin && (
         <div className="info-card" style={{ marginBottom: 16 }}>
           <p>Log ind som admin for at redigere resultater, bracket og deltagere.</p>
         </div>
       )}
 
-      {isAuthed && (
+      {isAdmin && (
         <>
 
       <div className="section-card">
@@ -437,7 +438,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminDelete, adminClearAll, onSu
   );
 }
 
-export default function ResultaterTab({ serverData, onSubmit, adminUpdate, adminVerify, adminDelete, adminClearAll, loading }) {
+export default function ResultaterTab({ serverData, onSubmit, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading }) {
   const [adminOpen, setAdminOpen] = useState(false);
   const colleagues = serverData?.colleagues || [];
 
@@ -454,6 +455,9 @@ export default function ResultaterTab({ serverData, onSubmit, adminUpdate, admin
         <AdminPanel
           adminUpdate={adminUpdate}
           adminVerify={adminVerify}
+          adminLogout={adminLogout}
+          isAdmin={isAdmin}
+          adminPassword={adminPassword}
           adminDelete={adminDelete}
           adminClearAll={adminClearAll}
           onSubmit={onSubmit}

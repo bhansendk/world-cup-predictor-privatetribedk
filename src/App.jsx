@@ -155,6 +155,7 @@ export default function App() {
           adminVerify={server.adminVerifyPassword}
           adminLogout={server.adminLogout}
           isAdmin={server.isAdmin}
+          adminPassword={server.adminPassword}
           adminDelete={server.adminDeleteOne}
           adminClearAll={server.adminClearAll}
           loading={server.loading}

@@ -176,6 +176,6 @@ export default function useServerData() {
   return {
     serverData, loading, error, fetchData,
     submitPrediction, adminUpdateResults, adminDeleteOne, adminClearAll, adminVerifyPassword,
-    adminLogout, isAdmin
+    adminLogout, isAdmin, adminPassword
   };
 }
