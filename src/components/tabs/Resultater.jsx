@@ -30,6 +30,27 @@ function decodeImportText(rawText) {
   const input = (rawText || '').trim();
   if (!input) throw new Error('Tom tekststreng');
 
+  const buildAdvancedPrediction = (payload) => {
+    const bracket = payload?.bracket || {
+      r32: payload?.r32 || {},
+      r16: payload?.r16 || {},
+      qf: payload?.qf || {},
+      sf: payload?.sf || {},
+      final: payload?.final || {},
+      bronze: payload?.bronze || {}
+    };
+
+    return {
+      mode: 'advanced',
+      prediction: {
+        g: payload.g || {},
+        third: Array.isArray(payload.third) ? payload.third : [],
+        bracket,
+        fun: payload.fun || {}
+      }
+    };
+  };
+
   const tryParsePayload = (payload) => {
     if (!payload || typeof payload !== 'object') return null;
 
@@ -41,28 +62,12 @@ function decodeImportText(rawText) {
       return { mode: 'simple', prediction: payload.prediction };
     }
 
-    if (payload.mode === 'advanced' && payload.g && payload.bracket) {
-      return {
-        mode: 'advanced',
-        prediction: {
-          g: payload.g,
-          third: Array.isArray(payload.third) ? payload.third : [],
-          bracket: payload.bracket,
-          fun: payload.fun || {}
-        }
-      };
+    if (payload.mode === 'advanced' && payload.g && (payload.bracket || payload.r32 || payload.r16 || payload.qf || payload.sf || payload.final || payload.bronze)) {
+      return buildAdvancedPrediction(payload);
     }
 
-    if (payload.g && payload.bracket) {
-      return {
-        mode: 'advanced',
-        prediction: {
-          g: payload.g,
-          third: Array.isArray(payload.third) ? payload.third : [],
-          bracket: payload.bracket,
-          fun: payload.fun || {}
-        }
-      };
+    if (payload.g && (payload.bracket || payload.r32 || payload.r16 || payload.qf || payload.sf || payload.final || payload.bronze)) {
+      return buildAdvancedPrediction(payload);
     }
 
     return null;
