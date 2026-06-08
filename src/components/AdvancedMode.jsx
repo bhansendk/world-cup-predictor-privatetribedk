@@ -165,7 +165,6 @@ export default function AdvancedMode(props) {
       {tab === 'results' && (
         <ResultaterTab
           serverData={serverData}
-          onSubmit={onSubmit}
           adminUpdate={adminUpdate}
           adminVerify={adminVerify}
           adminLogout={adminLogout}

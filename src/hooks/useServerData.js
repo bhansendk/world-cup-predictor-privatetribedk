@@ -107,6 +107,25 @@ export default function useServerData() {
     }
   }, [fetchData]);
 
+  const adminImportPrediction = useCallback(async (name, mode, prediction, password) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/data?action=adminImport', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, mode, prediction, password })
+      });
+      const parsed = await parseApiResponse(res);
+      if (!parsed.ok) throw new Error(buildApiError(parsed, 'Import fejlede'));
+      await fetchData();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchData]);
+
   const adminVerifyPassword = useCallback(async (password) => {
     setLoading(true);
     try {
@@ -175,7 +194,7 @@ export default function useServerData() {
 
   return {
     serverData, loading, error, fetchData,
-    submitPrediction, adminUpdateResults, adminDeleteOne, adminClearAll, adminVerifyPassword,
+    submitPrediction, adminUpdateResults, adminImportPrediction, adminDeleteOne, adminClearAll, adminVerifyPassword,
     adminLogout, isAdmin, adminPassword
   };
 }

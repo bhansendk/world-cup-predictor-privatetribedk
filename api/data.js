@@ -126,6 +126,23 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
+      if (action === 'adminImport') {
+        const { password, name, mode, prediction } = body;
+        if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });
+        if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });
+        if (!['simple', 'advanced'].includes(mode)) return res.status(400).json({ error: 'Ugyldig mode' });
+        if (!prediction || typeof prediction !== 'object') return res.status(400).json({ error: 'Ugyldig forudsigelse' });
+
+        const data = await readBlob();
+        const normalized = normalizeName(name);
+        const idx = data.colleagues.findIndex(c => normalizeName(c.name) === normalized);
+        const entry = { name: name.trim().replace(/\s+/g, ' '), mode, prediction, submittedAt: new Date().toISOString() };
+        if (idx >= 0) data.colleagues[idx] = entry;
+        else data.colleagues.push(entry);
+        await writeBlob(data);
+        return res.status(200).json({ ok: true });
+      }
+
       if (action === 'submit') {
         const { name, mode, prediction } = body;
         if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });

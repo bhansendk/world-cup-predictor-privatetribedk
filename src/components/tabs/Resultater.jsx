@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ALL_TEAMS, GROUPS, FUN_QUESTIONS, QF_PAIRS, R16_PAIRS, R32, SF_PAIRS } from '../../data/wc2026.js';
+import { extractSimpleFromAdvanced } from '../../lib/scoring.js';
 import { FlagSpan, TeamSelect } from '../FormFields.jsx';
 import BracketTab from './Bracket.jsx';
 
@@ -118,7 +119,7 @@ function decodeImportText(rawText) {
   throw new Error('Kunne ikke aflæse import-teksten');
 }
 
-function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onSubmit, loading, colleagues, serverData }) {
+function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onLoadPrediction, loading, colleagues, serverData }) {
   const [pw, setPw] = useState('');
   const [status, setStatus] = useState('');
   const [importName, setImportName] = useState('');
@@ -209,14 +210,10 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
 
     try {
       const parsed = decodeImportText(importText);
-      const res = await onSubmit(importName.trim(), parsed.mode, parsed.prediction);
-      if (res.ok) {
-        setImportName('');
-        setImportText('');
-        setStatus(`✅ Importeret forudsigelse for ${importName.trim()} (${parsed.mode === 'simple' ? 'Hurtig' : 'Fodboldinteresseret'})`);
-      } else {
-        setStatus('❌ ' + (res.error || 'Import fejlede'));
-      }
+      onLoadPrediction(parsed, importName.trim());
+      setImportName('');
+      setImportText('');
+      setStatus(`✅ Forudsigelse indlæst for ${parsed.mode === 'simple' ? 'Hurtig' : 'Fodboldinteresseret'}. Du kan nu rette i fanerne.`);
     } catch (e) {
       setStatus('❌ ' + e.message);
     }
@@ -327,7 +324,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
           onChange={e => setImportText(e.target.value)}
         />
         <div className="submit-row">
-          <button className="btn-accent" onClick={handleImportText} disabled={loading}>➕ Importér forudsigelse</button>
+          <button className="btn-accent" onClick={handleImportText} disabled={loading}>📝 Indlæs til redigering</button>
         </div>
       </div>
 
@@ -443,9 +440,45 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
   );
 }
 
-export default function ResultaterTab({ serverData, onSubmit, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading }) {
+export default function ResultaterTab({ serverData, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading, setS, setFUN, setSIMPLE }) {
   const [adminOpen, setAdminOpen] = useState(false);
   const colleagues = serverData?.colleagues || [];
+
+  const handleLoadPrediction = (parsed) => {
+    if (parsed.mode === 'simple') {
+      const simple = parsed.prediction || {};
+      setSIMPLE(prev => ({
+        ...prev,
+        top1: simple.top1 || null,
+        top2: simple.top2 || null,
+        top3: simple.top3 || null,
+        top4: simple.top4 || null,
+        topscorer: simple.topscorer || null,
+        golden_ball: simple.golden_ball || null,
+        most_yellow: simple.most_yellow || null,
+        most_goals_team: simple.most_goals_team || null
+      }));
+      return;
+    }
+
+    const p = parsed.prediction || {};
+    const bracket = p.bracket || {};
+    const nextS = {
+      g: p.g || {},
+      third: Array.isArray(p.third) ? p.third : [],
+      r32: bracket.r32 || {},
+      r16: bracket.r16 || {},
+      qf: bracket.qf || {},
+      sf: bracket.sf || {},
+      final: bracket.final || {},
+      bronze: bracket.bronze || {}
+    };
+    const nextFun = p.fun || {};
+
+    setS(nextS);
+    setFUN(nextFun);
+    setSIMPLE(prev => ({ ...prev, ...extractSimpleFromAdvanced(nextS, nextFun) }));
+  };
 
   return (
     <div className="tab-content">
@@ -465,7 +498,7 @@ export default function ResultaterTab({ serverData, onSubmit, adminUpdate, admin
           adminPassword={adminPassword}
           adminDelete={adminDelete}
           adminClearAll={adminClearAll}
-          onSubmit={onSubmit}
+          onLoadPrediction={handleLoadPrediction}
           loading={loading}
           colleagues={colleagues}
           serverData={serverData}
