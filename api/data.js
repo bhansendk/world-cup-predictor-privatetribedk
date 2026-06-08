@@ -1,6 +1,7 @@
 import { put, list } from '@vercel/blob';
 
-const BLOB_NAME = 'wc2026-tirsdagsklubben.json';
+const COMPETITION_SLUG = (process.env.COMPETITION_SLUG || 'privattribedk').toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+const BLOB_NAME = process.env.BLOB_DATA_FILE || `wc2026-${COMPETITION_SLUG}.json`;
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'admin123';
 const BLOB_ACCESS = process.env.BLOB_ACCESS || 'public';
 const SIMPLE_REQUIRED_FIELDS = ['top1', 'top2', 'top3', 'top4', 'topscorer', 'golden_ball', 'most_yellow', 'most_goals_team'];

@@ -55,6 +55,8 @@ Gå til **Project Settings → Environment Variables** og tilføj:
 |---|---|---|
 | `BLOB_READ_WRITE_TOKEN` | `vercel_blob_rw_...` | Token til Vercel Blob storage |
 | `ADMIN_PASSWORD` | `<din-hemlige-kode>` | Adgangskode til admin-panel |
+| `COMPETITION_SLUG` | `privattribedk` | Unik nøgle for konkurrence-data (adskiller deltagere/resultater) |
+| `BLOB_DATA_FILE` | `wc2026-privattribedk.json` | Valgfrit specifikt blob-filnavn (overstyrer slug) |
 
 **Sådan får du `BLOB_READ_WRITE_TOKEN`:**
 1. I Vercel: gå til **Storage → Connect Store → Blob**
@@ -63,6 +65,8 @@ Gå til **Project Settings → Environment Variables** og tilføj:
 
 ### 4. Redeploy
 Efter tilføjelse af env vars: **Deployments → Redeploy** (eller push en ny commit).
+
+Tip: Du kan køre flere konkurrencer med samme `BLOB_READ_WRITE_TOKEN`, så længe hver app har unik `COMPETITION_SLUG` (eller `BLOB_DATA_FILE`).
 
 ---
 
