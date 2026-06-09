@@ -30,7 +30,7 @@ export default function AdvancedMode(props) {
       serverData, onSubmit, adminUpdate, adminVerify, adminDelete, adminClearAll, loading,
         fetchData, onReset, onResetGroups, onResetThird, onResetBracket, onResetFun,
         setS, setFUN, setSIMPLE, myName, setMyName, myEditCode, setMyEditCode,
-        isAdmin, adminLogout, adminPassword } = props;
+        onLoadMine, isAdmin, adminLogout, adminPassword } = props;
 
   const randomPick = (arr) => arr[Math.floor(Math.random() * arr.length)] || null;
 
@@ -161,6 +161,7 @@ export default function AdvancedMode(props) {
           onReset={onReset} myName={myName} setMyName={setMyName}
           myEditCode={myEditCode}
           setMyEditCode={setMyEditCode}
+          onLoadMine={onLoadMine}
           adminVerify={adminVerify}
           adminLogout={adminLogout}
           isAdmin={isAdmin}

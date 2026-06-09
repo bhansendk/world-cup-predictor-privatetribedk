@@ -161,6 +161,24 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
+      if (action === 'mine') {
+        const { name, editCode } = body;
+        if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });
+        const normalizedCode = normalizeEditCode(editCode);
+        if (!normalizedCode) return res.status(400).json({ error: 'Redigeringskode mangler' });
+
+        const data = await readBlob();
+        const normalized = normalizeName(name);
+        const entry = (data.colleagues || []).find(c => normalizeName(c.name) === normalized);
+        if (!entry) return res.status(404).json({ error: 'Ingen forudsigelse fundet for navnet' });
+        if (!entry.editCodeHash || hashEditCode(normalizedCode) !== entry.editCodeHash) {
+          return res.status(403).json({ error: 'Forkert redigeringskode' });
+        }
+
+        const { editCodeHash, ...safeEntry } = entry;
+        return res.status(200).json({ ok: true, entry: safeEntry });
+      }
+
       if (action === 'adminImport') {
         const { password, name, mode, prediction } = body;
         if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });

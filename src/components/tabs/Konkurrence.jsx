@@ -356,6 +356,7 @@ export default function KonkurrenceTab({
   setMyName,
   myEditCode,
   setMyEditCode,
+  onLoadMine,
   adminVerify,
   adminLogout,
   isAdmin
@@ -397,6 +398,23 @@ export default function KonkurrenceTab({
     adminLogout();
     setAdminPw('');
     setAdminStatus('');
+  };
+
+  const handleLoadMine = async () => {
+    if (!name.trim()) {
+      setStatus('Skriv dit navn!');
+      return;
+    }
+    if (!editCode.trim()) {
+      setStatus('Skriv din redigeringskode!');
+      return;
+    }
+    const res = await onLoadMine(name.trim(), editCode.trim());
+    if (res.ok) {
+      setStatus('✅ Din forudsigelse er hentet.');
+      return;
+    }
+    setStatus('❌ ' + res.error);
   };
 
   const handleSubmit = async () => {
@@ -505,10 +523,11 @@ export default function KonkurrenceTab({
           <button className="btn-primary" onClick={handleSubmit} disabled={!canSubmit}>
             {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send ✈️'}
           </button>
+          <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>🔐 Log ind og hent</button>
           <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil</button>
         </div>
         {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
-        <p className="info-txt">Første gang du sender, får du en redigeringskode. Brug samme kode for at rette dit bud senere.</p>
+        <p className="info-txt">Første gang du sender, får du en redigeringskode. Brug navn + kode til at logge ind og hente din egen besvarelse.</p>
         {!registrationClosed && !modeComplete && (
           <p className="info-txt">
             {mode === 'simple'

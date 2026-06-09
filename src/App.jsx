@@ -38,7 +38,8 @@ export default function App() {
   const [showModeIntro, setShowModeIntro] = useState(false);
 
   const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird, updateBracketRound,
-      updateFun, updateSimple, resetAll, setS, setFUN, setSIMPLE, myEditCode, setMyEditCode } = local;
+      updateFun, updateSimple, resetAll, loadFromObject,
+      setS, setFUN, setSIMPLE, myEditCode, setMyEditCode } = local;
 
   // Sync bracket → simple
   const syncBracketToSimple = useCallback((newS) => {
@@ -146,6 +147,46 @@ export default function App() {
     SHARED_FUN_KEYS.forEach(k => updateSimple(k, null));
   }, [updateSimple]);
 
+  const loadMyPrediction = useCallback(async (name, editCode) => {
+    const res = await server.fetchMyPrediction(name, editCode);
+    if (!res.ok) return res;
+
+    const entry = res.entry;
+    if (!entry || !entry.mode || !entry.prediction) {
+      return { ok: false, error: 'Kunne ikke laese forudsigelsen fra serveren' };
+    }
+
+    if (entry.mode === 'simple') {
+      loadFromObject({
+        mode: 'simple',
+        SIMPLE: entry.prediction
+      });
+    } else {
+      const bracket = entry.prediction?.bracket || {};
+      const nextS = {
+        g: entry.prediction?.g || {},
+        third: entry.prediction?.third || [],
+        r32: bracket.r32 || {},
+        r16: bracket.r16 || {},
+        qf: bracket.qf || {},
+        sf: bracket.sf || {},
+        final: bracket.final || {},
+        bronze: bracket.bronze || {}
+      };
+      const nextFUN = entry.prediction?.fun || {};
+      loadFromObject({
+        mode: 'advanced',
+        S: nextS,
+        FUN: nextFUN,
+        SIMPLE: extractSimpleFromAdvanced(nextS, nextFUN)
+      });
+    }
+
+    setMyName(entry.name || name.trim());
+    setMyEditCode(editCode.trim().toUpperCase());
+    return { ok: true, mode: entry.mode };
+  }, [loadFromObject, server, setMyName, setMyEditCode]);
+
   if (!mode) {
     return <ModeSelector onSelect={(m) => { setMode(m); setShowModeIntro(true); }} />;
   }
@@ -210,6 +251,7 @@ export default function App() {
           setMyName={setMyName}
           myEditCode={myEditCode}
           setMyEditCode={setMyEditCode}
+          onLoadMine={loadMyPrediction}
         />
       ) : (
         <AdvancedMode
@@ -244,6 +286,7 @@ export default function App() {
           setMyName={setMyName}
           myEditCode={myEditCode}
           setMyEditCode={setMyEditCode}
+          onLoadMine={loadMyPrediction}
         />
       )}
     </div>

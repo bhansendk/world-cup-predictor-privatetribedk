@@ -92,6 +92,24 @@ export default function useServerData() {
     }
   }, [fetchData]);
 
+  const fetchMyPrediction = useCallback(async (name, editCode) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/data?action=mine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, editCode })
+      });
+      const parsed = await parseApiResponse(res);
+      if (!parsed.ok) throw new Error(buildApiError(parsed, 'Kunne ikke hente forudsigelse'));
+      return { ok: true, entry: parsed?.data?.entry || null };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const adminUpdateResults = useCallback(async (results, password) => {
     setLoading(true);
     try {
@@ -198,7 +216,8 @@ export default function useServerData() {
 
   return {
     serverData, loading, error, fetchData,
-    submitPrediction, adminUpdateResults, adminImportPrediction, adminDeleteOne, adminClearAll, adminVerifyPassword,
+    submitPrediction, fetchMyPrediction,
+    adminUpdateResults, adminImportPrediction, adminDeleteOne, adminClearAll, adminVerifyPassword,
     adminLogout, isAdmin, adminPassword
   };
 }

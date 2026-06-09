@@ -31,7 +31,8 @@ export default function SimpleMode({
   myName,
   setMyName,
   myEditCode,
-  setMyEditCode
+  setMyEditCode,
+  onLoadMine
 }) {
   const [name, setName] = useState(myName || '');
   const [editCode, setEditCode] = useState(myEditCode || '');
@@ -61,6 +62,17 @@ export default function SimpleMode({
         : '✅ Forudsigelse gemt!');
     }
     else setStatus('❌ Fejl: ' + res.error);
+  };
+
+  const handleLoadMine = async () => {
+    if (!name.trim()) { setStatus('Skriv dit navn først!'); return; }
+    if (!editCode.trim()) { setStatus('Skriv din redigeringskode først!'); return; }
+    const res = await onLoadMine(name.trim(), editCode.trim());
+    if (res.ok) {
+      setStatus('✅ Din forudsigelse er hentet.');
+      return;
+    }
+    setStatus('❌ ' + res.error);
   };
 
   const top4 = [
@@ -132,11 +144,12 @@ export default function SimpleMode({
           <button className="btn-primary" onClick={handleSubmit} disabled={loading || registrationClosed}>
             {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send forudsigelse ✈️'}
           </button>
+          <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>🔐 Log ind og hent</button>
           <button className="btn-ghost btn-sm" onClick={onResetTop4}>🧹 Nulstil top 4</button>
           <button className="btn-ghost btn-sm" onClick={onResetFun}>🧹 Nulstil sjove tips</button>
           <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil alt</button>
         </div>
-        <p className="info-txt">Første gang du sender, får du en redigeringskode. Brug samme kode for at rette dit bud senere.</p>
+        <p className="info-txt">Første gang du sender, får du en redigeringskode. Brug navn + kode til at logge ind og hente din egen besvarelse.</p>
         {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
         {!registrationClosed && !isComplete && <p className="info-txt">Manglende felter: {missingFields.join(', ')}.</p>}
         {status && <p className="status-msg">{status}</p>}
