@@ -285,6 +285,9 @@ a.lb-name-link:hover{color:#3b82f6}
 .lb-row.lb-locked:hover { background: #0f172a; }
 .lb-row.lb-own { border-left: 3px solid #3b82f6; }
 
+.login-gate-wrap { min-height: 78vh; display: flex; align-items: center; justify-content: center; }
+.login-gate-card { width: 100%; max-width: 620px; }
+
 @media (max-width: 820px) {
 	.submit-panel-grid { grid-template-columns: 1fr; }
 	.smart-login-row { align-items: stretch; }
