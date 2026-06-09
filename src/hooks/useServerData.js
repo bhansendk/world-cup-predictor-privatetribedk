@@ -93,6 +93,26 @@ export default function useServerData() {
     }
   }, [fetchData]);
 
+  const autosavePrediction = useCallback(async (name, mode, prediction, editCode = '', adminPassword = '', newEditCode = '') => {
+    try {
+      const res = await fetch('/api/data?action=autosave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, mode, prediction, editCode, adminPassword, newEditCode })
+      });
+      const parsed = await parseApiResponse(res);
+      if (!parsed.ok) throw new Error(buildApiError(parsed, 'Autosave fejlede'));
+      return {
+        ok: true,
+        editCode: parsed?.data?.editCode || '',
+        codeGenerated: !!parsed?.data?.codeGenerated,
+        codeChanged: !!parsed?.data?.codeChanged
+      };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }, []);
+
   const fetchMyPrediction = useCallback(async (name, editCode) => {
     setLoading(true);
     try {
@@ -217,7 +237,7 @@ export default function useServerData() {
 
   return {
     serverData, loading, error, fetchData,
-    submitPrediction, fetchMyPrediction,
+    submitPrediction, autosavePrediction, fetchMyPrediction,
     adminUpdateResults, adminImportPrediction, adminDeleteOne, adminClearAll, adminVerifyPassword,
     adminLogout, isAdmin, adminPassword
   };

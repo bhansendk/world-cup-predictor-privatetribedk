@@ -582,7 +582,7 @@ export default function KonkurrenceTab({
 
           <div className="submit-meta-list">
             {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
-            <p className="info-txt">Startkode er 123456 for alle. Hvis du allerede har brugt siden på denne enhed, kan du ofte bare trykke Brug gemt login.</p>
+            <p className="info-txt">Startkode er 123456 for alle. NaAr du er logget ind, autosaves dine aendringer automatisk. Efter 11-06-2026 kl. 21 er aendringer lukket (undtagen admin).</p>
             {!registrationClosed && !modeComplete && (
               <p className="info-txt">
                 {mode === 'simple'

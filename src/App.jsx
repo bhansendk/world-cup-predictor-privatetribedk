@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import useLocalState from './hooks/useLocalState.js';
 import useServerData from './hooks/useServerData.js';
 
@@ -36,6 +36,8 @@ export default function App() {
   const [showWarn, setShowWarn] = useState(false);
   const [pendingSimpleChange, setPendingSimpleChange] = useState(null);
   const [showModeIntro, setShowModeIntro] = useState(false);
+  const autosaveTimerRef = useRef(null);
+  const autosaveSnapshotRef = useRef('');
 
   const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird, updateBracketRound,
       updateFun, updateSimple, resetAll, loadFromObject,
@@ -186,6 +188,62 @@ export default function App() {
     setMyEditCode(editCode.trim().toUpperCase());
     return { ok: true, mode: entry.mode };
   }, [loadFromObject, server, setMyName, setMyEditCode]);
+
+  useEffect(() => {
+    if (!mode || !myName?.trim()) return;
+
+    const code = (myEditCode || '123456').trim().toUpperCase();
+    const prediction = mode === 'simple'
+      ? SIMPLE
+      : {
+          g: S.g,
+          third: S.third,
+          bracket: {
+            r32: S.r32,
+            r16: S.r16,
+            qf: S.qf,
+            sf: S.sf,
+            final: S.final,
+            bronze: S.bronze
+          },
+          fun: FUN
+        };
+
+    const snapshot = JSON.stringify({ name: myName.trim(), mode, code, prediction, isAdmin: server.isAdmin });
+    if (snapshot === autosaveSnapshotRef.current) return;
+
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(async () => {
+      const res = await server.autosavePrediction(
+        myName.trim(),
+        mode,
+        prediction,
+        code,
+        server.isAdmin ? server.adminPassword : ''
+      );
+      if (res.ok) {
+        autosaveSnapshotRef.current = snapshot;
+        if (res.editCode && res.editCode !== myEditCode) {
+          setMyEditCode(res.editCode);
+        }
+      }
+    }, 1200);
+
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  }, [
+    mode,
+    S,
+    FUN,
+    SIMPLE,
+    myName,
+    myEditCode,
+    server.isAdmin,
+    server.adminPassword,
+    server.autosavePrediction,
+    setMyEditCode
+  ]);
 
   if (!mode) {
     return <ModeSelector onSelect={(m) => { setMode(m); setShowModeIntro(true); }} />;

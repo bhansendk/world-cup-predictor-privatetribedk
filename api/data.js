@@ -176,6 +176,107 @@ export default async function handler(req, res) {
       const action = req.query.action;
       const body = req.body || {};
 
+      const savePrediction = async ({ name, mode, prediction, editCode, newEditCode, adminPassword, allowIncomplete }) => {
+        if (!name?.trim()) return { status: 400, payload: { error: 'Navn mangler' } };
+
+        const isAdminSubmit = adminPassword === ADMIN_PASS;
+        if (!allowIncomplete && !isAdminSubmit) {
+          const predictionError = validatePrediction(mode, prediction);
+          if (predictionError) return { status: 400, payload: { error: predictionError } };
+        }
+
+        if (!isAdminSubmit && new Date() >= REVEAL_DATE) {
+          return { status: 403, payload: { error: 'AEndringer er lukket efter 11. juni 2026 kl. 21:00.' } };
+        }
+
+        const data = await readBlob();
+        const normalized = normalizeName(name);
+        const idx = data.colleagues.findIndex(c => normalizeName(c.name) === normalized);
+        const normalizedCode = normalizeEditCode(editCode);
+        const normalizedNewCode = normalizeEditCode(newEditCode);
+        if (normalizedNewCode && !isValidEditCode(normalizedNewCode)) {
+          return { status: 400, payload: { error: 'Ny redigeringskode skal vaere 6-20 tegn (A-Z, 0-9)' } };
+        }
+        const existingHashes = new Set((data.colleagues || []).map(c => c.editCodeHash).filter(Boolean));
+
+        let resolvedCode = normalizedNewCode || normalizedCode;
+        let codeGenerated = false;
+        let codeChanged = false;
+        const nowIso = new Date().toISOString();
+
+        if (idx >= 0) {
+          const existing = data.colleagues[idx];
+          if (existing?.editCodeHash) {
+            if (!normalizedCode) {
+              return {
+                status: 409,
+                payload: {
+                  error: 'Denne forudsigelse findes allerede. Indtast din redigeringskode for at opdatere.'
+                }
+              };
+            }
+            if (!matchesEditCode(existing, normalizedCode)) {
+              return { status: 403, payload: { error: 'Forkert redigeringskode' } };
+            }
+
+            if (normalizedNewCode) {
+              const nextHash = hashEditCode(normalizedNewCode);
+              if (
+                nextHash !== existing.editCodeHash &&
+                existingHashes.has(nextHash) &&
+                !isDefaultInitialCode(normalizedNewCode)
+              ) {
+                return { status: 409, payload: { error: 'Den nye redigeringskode er allerede i brug' } };
+              }
+              codeChanged = nextHash !== existing.editCodeHash || usesDefaultEditCode(existing) !== isDefaultInitialCode(normalizedNewCode);
+            }
+          } else if (!normalizedCode) {
+            resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
+            codeGenerated = true;
+          } else if (normalizedNewCode) {
+            const nextHash = hashEditCode(normalizedNewCode);
+            if (existingHashes.has(nextHash) && !isDefaultInitialCode(normalizedNewCode)) {
+              return { status: 409, payload: { error: 'Den nye redigeringskode er allerede i brug' } };
+            }
+            codeChanged = true;
+          }
+
+          const entry = {
+            name: name.trim().replace(/\s+/g, ' '),
+            mode,
+            prediction,
+            submittedAt: nowIso,
+            editCodeHash: hashEditCode(resolvedCode || DEFAULT_INITIAL_EDIT_CODE),
+            usesDefaultEditCode: isDefaultInitialCode(resolvedCode || DEFAULT_INITIAL_EDIT_CODE)
+          };
+          data.colleagues[idx] = entry;
+        } else {
+          if (!resolvedCode) {
+            resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
+            codeGenerated = true;
+          }
+          if (
+            hashEditCode(resolvedCode) &&
+            existingHashes.has(hashEditCode(resolvedCode)) &&
+            !isDefaultInitialCode(resolvedCode)
+          ) {
+            return { status: 409, payload: { error: 'Redigeringskoden er allerede i brug' } };
+          }
+          const entry = {
+            name: name.trim().replace(/\s+/g, ' '),
+            mode,
+            prediction,
+            submittedAt: nowIso,
+            editCodeHash: hashEditCode(resolvedCode),
+            usesDefaultEditCode: isDefaultInitialCode(resolvedCode)
+          };
+          data.colleagues.push(entry);
+        }
+
+        await writeBlob(data);
+        return { status: 200, payload: { ok: true, editCode: resolvedCode, codeGenerated, codeChanged } };
+      };
+
       if (action === 'verify') {
         const { password } = body;
         if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });
@@ -226,99 +327,14 @@ export default async function handler(req, res) {
       }
 
       if (action === 'submit') {
-        const { name, mode, prediction, editCode, newEditCode, adminPassword } = body;
-        if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });
-        const isAdminSubmit = adminPassword === ADMIN_PASS;
-        if (!isAdminSubmit) {
-          const predictionError = validatePrediction(mode, prediction);
-          if (predictionError) return res.status(400).json({ error: predictionError });
-        }
-        if (new Date() >= REVEAL_DATE) {
-          return res.status(403).json({ error: 'Tilmelding er lukket. VM er startet.' });
-        }
-        const data = await readBlob();
-        const normalized = normalizeName(name);
-        const idx = data.colleagues.findIndex(c => normalizeName(c.name) === normalized);
-        const normalizedCode = normalizeEditCode(editCode);
-        const normalizedNewCode = normalizeEditCode(newEditCode);
-        if (normalizedNewCode && !isValidEditCode(normalizedNewCode)) {
-          return res.status(400).json({ error: 'Ny redigeringskode skal vaere 6-20 tegn (A-Z, 0-9)' });
-        }
-        const existingHashes = new Set((data.colleagues || []).map(c => c.editCodeHash).filter(Boolean));
+        const result = await savePrediction({ ...body, allowIncomplete: false });
+        return res.status(result.status).json(result.payload);
+      }
 
-        let resolvedCode = normalizedNewCode || normalizedCode;
-        let codeGenerated = false;
-        let codeChanged = false;
-        const nowIso = new Date().toISOString();
-
-        if (idx >= 0) {
-          const existing = data.colleagues[idx];
-          if (existing?.editCodeHash) {
-            if (!normalizedCode) {
-              return res.status(409).json({
-                error: 'Denne forudsigelse findes allerede. Indtast din redigeringskode for at opdatere.'
-              });
-            }
-            if (!matchesEditCode(existing, normalizedCode)) {
-              return res.status(403).json({ error: 'Forkert redigeringskode' });
-            }
-
-            if (normalizedNewCode) {
-              const nextHash = hashEditCode(normalizedNewCode);
-              if (
-                nextHash !== existing.editCodeHash &&
-                existingHashes.has(nextHash) &&
-                !isDefaultInitialCode(normalizedNewCode)
-              ) {
-                return res.status(409).json({ error: 'Den nye redigeringskode er allerede i brug' });
-              }
-              codeChanged = nextHash !== existing.editCodeHash || usesDefaultEditCode(existing) !== isDefaultInitialCode(normalizedNewCode);
-            }
-          } else if (!normalizedCode) {
-            resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
-            codeGenerated = true;
-          } else if (normalizedNewCode) {
-            const nextHash = hashEditCode(normalizedNewCode);
-            if (existingHashes.has(nextHash) && !isDefaultInitialCode(normalizedNewCode)) {
-              return res.status(409).json({ error: 'Den nye redigeringskode er allerede i brug' });
-            }
-            codeChanged = true;
-          }
-
-          const entry = {
-            name: name.trim().replace(/\s+/g, ' '),
-            mode,
-            prediction,
-            submittedAt: nowIso,
-            editCodeHash: hashEditCode(resolvedCode || DEFAULT_INITIAL_EDIT_CODE),
-            usesDefaultEditCode: isDefaultInitialCode(resolvedCode || DEFAULT_INITIAL_EDIT_CODE)
-          };
-          data.colleagues[idx] = entry;
-        } else {
-          if (!resolvedCode) {
-            resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
-            codeGenerated = true;
-          }
-          if (
-            hashEditCode(resolvedCode) &&
-            existingHashes.has(hashEditCode(resolvedCode)) &&
-            !isDefaultInitialCode(resolvedCode)
-          ) {
-            return res.status(409).json({ error: 'Redigeringskoden er allerede i brug' });
-          }
-          const entry = {
-            name: name.trim().replace(/\s+/g, ' '),
-            mode,
-            prediction,
-            submittedAt: nowIso,
-            editCodeHash: hashEditCode(resolvedCode),
-            usesDefaultEditCode: isDefaultInitialCode(resolvedCode)
-          };
-          data.colleagues.push(entry);
-        }
-
-        await writeBlob(data);
-        return res.status(200).json({ ok: true, editCode: resolvedCode, codeGenerated, codeChanged });
+      if (action === 'autosave') {
+        const result = await savePrediction({ ...body, allowIncomplete: true });
+        if (result.status !== 200) return res.status(result.status).json(result.payload);
+        return res.status(200).json({ ...result.payload, autosaved: true });
       }
 
       if (action === 'results') {
