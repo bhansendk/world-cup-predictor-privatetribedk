@@ -17,6 +17,7 @@ const SIMPLE_FIELDS = [
   { key: 'most_yellow', label: 'Flest gule kort - hold' },
   { key: 'most_goals_team', label: 'Flest mål - hold' }
 ];
+const DEFAULT_EDIT_CODE = '123456';
 
 function isFilled(v) {
   if (typeof v === 'string') return v.trim().length > 0;
@@ -362,8 +363,9 @@ export default function KonkurrenceTab({
   isAdmin
 }) {
   const [name, setName] = useState(myName || '');
-  const [editCode, setEditCode] = useState(myEditCode || '');
+  const [editCode, setEditCode] = useState(myEditCode || DEFAULT_EDIT_CODE);
   const [newEditCode, setNewEditCode] = useState('');
+  const [showCodeChange, setShowCodeChange] = useState(false);
   const [status, setStatus] = useState('');
   const [mode, setMode] = useState('advanced');
   const [adminPw, setAdminPw] = useState('');
@@ -381,6 +383,14 @@ export default function KonkurrenceTab({
   const advancedMissing = getAdvancedMissing(S, FUN);
   const modeComplete = mode === 'simple' ? simpleMissing.length === 0 : advancedMissing.length === 0;
   const canSubmit = !registrationClosed && !loading;
+
+  useEffect(() => {
+    setName(myName || '');
+  }, [myName]);
+
+  useEffect(() => {
+    setEditCode(myEditCode || DEFAULT_EDIT_CODE);
+  }, [myEditCode]);
 
   const handleAdminLogin = async () => {
     if (!adminPw.trim()) {
@@ -406,16 +416,22 @@ export default function KonkurrenceTab({
       setStatus('Skriv dit navn!');
       return;
     }
-    if (!editCode.trim()) {
-      setStatus('Skriv din redigeringskode!');
-      return;
-    }
-    const res = await onLoadMine(name.trim(), editCode.trim());
+    const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
+    const res = await onLoadMine(name.trim(), currentCode);
     if (res.ok) {
       setStatus('✅ Din forudsigelse er hentet.');
       return;
     }
     setStatus('❌ ' + res.error);
+  };
+
+  const handleLoadSaved = async () => {
+    if (!myName) return;
+    const savedCode = myEditCode || DEFAULT_EDIT_CODE;
+    setName(myName);
+    setEditCode(savedCode);
+    const res = await onLoadMine(myName, savedCode);
+    setStatus(res.ok ? '✅ Dit gemte bud er hentet.' : '❌ ' + res.error);
   };
 
   const handleSubmit = async () => {
@@ -430,7 +446,8 @@ export default function KonkurrenceTab({
     const prediction = mode === 'simple'
       ? SIMPLE
       : { g: S.g, third: S.third, bracket: { r32: S.r32, r16: S.r16, qf: S.qf, sf: S.sf, final: S.final, bronze: S.bronze }, fun: FUN };
-    const res = await onSubmit(name.trim(), mode, prediction, editCode.trim(), isAdmin ? adminPw.trim() : '', newEditCode.trim());
+    const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
+    const res = await onSubmit(name.trim(), mode, prediction, currentCode, isAdmin ? adminPw.trim() : '', newEditCode.trim());
     if (res.ok) {
       setMyName(name.trim());
       if (res.editCode) {
@@ -438,6 +455,7 @@ export default function KonkurrenceTab({
         setMyEditCode(res.editCode);
       }
       setNewEditCode('');
+      setShowCodeChange(false);
       if (res.codeChanged && res.editCode) {
         setStatus(`✅ Gemt! Din redigeringskode er nu: ${res.editCode}.`);
       } else if (res.codeGenerated && res.editCode) {
@@ -533,13 +551,24 @@ export default function KonkurrenceTab({
                 value={editCode}
                 onChange={e => setEditCode(e.target.value.toUpperCase())}
               />
-              <input
-                type="text"
-                className="name-input submit-input"
-                placeholder="Ny redigeringskode (valgfri)"
-                value={newEditCode}
-                onChange={e => setNewEditCode(e.target.value.toUpperCase())}
-              />
+              <div className="smart-login-row">
+                <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>Hent mit bud</button>
+                {myName && (
+                  <button className="btn-ghost btn-sm" onClick={handleLoadSaved} disabled={loading}>Brug gemt login</button>
+                )}
+                <button className="btn-ghost btn-sm" onClick={() => setShowCodeChange(v => !v)}>
+                  {showCodeChange ? 'Luk kodevalg' : 'Skift kode'}
+                </button>
+              </div>
+              {showCodeChange && (
+                <input
+                  type="text"
+                  className="name-input submit-input"
+                  placeholder="Ny redigeringskode"
+                  value={newEditCode}
+                  onChange={e => setNewEditCode(e.target.value.toUpperCase())}
+                />
+              )}
             </div>
           </div>
 
@@ -553,7 +582,7 @@ export default function KonkurrenceTab({
 
           <div className="submit-meta-list">
             {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
-            <p className="info-txt">Startkode er 123456 for alle. Du kan senere ændre den ved at udfylde Ny redigeringskode.</p>
+            <p className="info-txt">Startkode er 123456 for alle. Hvis du allerede har brugt siden på denne enhed, kan du ofte bare trykke Brug gemt login.</p>
             {!registrationClosed && !modeComplete && (
               <p className="info-txt">
                 {mode === 'simple'

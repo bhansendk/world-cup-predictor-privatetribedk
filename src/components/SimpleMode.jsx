@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TeamSelect, FunQuestionSelect } from './FormFields.jsx';
+
+const DEFAULT_EDIT_CODE = '123456';
 
 const SIMPLE_FIELDS = [
   { key: 'top1', label: 'Mester' },
@@ -35,13 +37,22 @@ export default function SimpleMode({
   onLoadMine
 }) {
   const [name, setName] = useState(myName || '');
-  const [editCode, setEditCode] = useState(myEditCode || '');
+  const [editCode, setEditCode] = useState(myEditCode || DEFAULT_EDIT_CODE);
   const [newEditCode, setNewEditCode] = useState('');
+  const [showCodeChange, setShowCodeChange] = useState(false);
   const [status, setStatus] = useState('');
   const revealTs = serverData?.revealDate ? Date.parse(serverData.revealDate) : Date.parse('2026-06-11T19:00:00Z');
   const registrationClosed = Number.isFinite(revealTs) ? Date.now() >= revealTs : false;
   const missingFields = SIMPLE_FIELDS.filter(f => !isFilled(SIMPLE?.[f.key])).map(f => f.label);
   const isComplete = missingFields.length === 0;
+
+  useEffect(() => {
+    setName(myName || '');
+  }, [myName]);
+
+  useEffect(() => {
+    setEditCode(myEditCode || DEFAULT_EDIT_CODE);
+  }, [myEditCode]);
 
   const handleSubmit = async () => {
     if (registrationClosed) { setStatus('⛔ Tilmelding er lukket. VM er startet.'); return; }
@@ -51,7 +62,8 @@ export default function SimpleMode({
       return;
     }
     const prediction = { ...SIMPLE };
-    const res = await onSubmit(name.trim(), 'simple', prediction, editCode.trim(), '', newEditCode.trim());
+    const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
+    const res = await onSubmit(name.trim(), 'simple', prediction, currentCode, '', newEditCode.trim());
     if (res.ok) {
       setMyName(name.trim());
       if (res.editCode) {
@@ -59,6 +71,7 @@ export default function SimpleMode({
         setMyEditCode(res.editCode);
       }
       setNewEditCode('');
+      setShowCodeChange(false);
       if (res.codeChanged && res.editCode) {
         setStatus(`✅ Forudsigelse gemt! Din redigeringskode er nu: ${res.editCode}.`);
       } else if (res.codeGenerated && res.editCode) {
@@ -72,13 +85,22 @@ export default function SimpleMode({
 
   const handleLoadMine = async () => {
     if (!name.trim()) { setStatus('Skriv dit navn først!'); return; }
-    if (!editCode.trim()) { setStatus('Skriv din redigeringskode først!'); return; }
-    const res = await onLoadMine(name.trim(), editCode.trim());
+    const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
+    const res = await onLoadMine(name.trim(), currentCode);
     if (res.ok) {
       setStatus('✅ Din forudsigelse er hentet.');
       return;
     }
     setStatus('❌ ' + res.error);
+  };
+
+  const handleLoadSaved = async () => {
+    if (!myName) return;
+    const savedCode = myEditCode || DEFAULT_EDIT_CODE;
+    setName(myName);
+    setEditCode(savedCode);
+    const res = await onLoadMine(myName, savedCode);
+    setStatus(res.ok ? '✅ Dit gemte bud er hentet.' : '❌ ' + res.error);
   };
 
   const top4 = [
@@ -132,40 +154,66 @@ export default function SimpleMode({
 
       <div className="section-card">
         <h2>📤 Send din forudsigelse</h2>
-        <div className="submit-row">
-          <input
-            type="text"
-            className="name-input"
-            placeholder="Dit navn"
-            value={name}
-            onChange={e => setName(e.target.value)}
-          />
-          <input
-            type="text"
-            className="name-input"
-            placeholder="Redigeringskode"
-            value={editCode}
-            onChange={e => setEditCode(e.target.value.toUpperCase())}
-          />
-          <input
-            type="text"
-            className="name-input"
-            placeholder="Ny redigeringskode (valgfri)"
-            value={newEditCode}
-            onChange={e => setNewEditCode(e.target.value.toUpperCase())}
-          />
-          <button className="btn-primary" onClick={handleSubmit} disabled={loading || registrationClosed}>
-            {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send forudsigelse ✈️'}
-          </button>
-          <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>🔐 Log ind og hent</button>
-          <button className="btn-ghost btn-sm" onClick={onResetTop4}>🧹 Nulstil top 4</button>
-          <button className="btn-ghost btn-sm" onClick={onResetFun}>🧹 Nulstil sjove tips</button>
-          <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil alt</button>
+        <div className="submit-panel compact-submit-panel">
+          <div className="submit-panel-grid single-column-submit">
+            <div className="submit-panel-block">
+              <div className="submit-panel-label">Bruger</div>
+              <input
+                type="text"
+                className="name-input submit-input"
+                placeholder="Dit navn"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+
+            <div className="submit-panel-block">
+              <div className="submit-panel-label">Login</div>
+              <input
+                type="text"
+                className="name-input submit-input"
+                placeholder="Redigeringskode"
+                value={editCode}
+                onChange={e => setEditCode(e.target.value.toUpperCase())}
+              />
+              <div className="smart-login-row">
+                <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>Hent mit bud</button>
+                {myName && (
+                  <button className="btn-ghost btn-sm" onClick={handleLoadSaved} disabled={loading}>Brug gemt login</button>
+                )}
+                <button className="btn-ghost btn-sm" onClick={() => setShowCodeChange(v => !v)}>
+                  {showCodeChange ? 'Luk kodevalg' : 'Skift kode'}
+                </button>
+              </div>
+              {showCodeChange && (
+                <input
+                  type="text"
+                  className="name-input submit-input"
+                  placeholder="Ny redigeringskode"
+                  value={newEditCode}
+                  onChange={e => setNewEditCode(e.target.value.toUpperCase())}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="submit-action-row">
+            <button className="btn-primary" onClick={handleSubmit} disabled={loading || registrationClosed}>
+              {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send forudsigelse ✈️'}
+            </button>
+            <button className="btn-ghost btn-sm" onClick={onResetTop4}>🧹 Nulstil top 4</button>
+            <button className="btn-ghost btn-sm" onClick={onResetFun}>🧹 Nulstil sjove tips</button>
+            <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil alt</button>
+          </div>
+
+          <div className="submit-meta-list">
+            <p className="info-txt">Startkode er 123456 for alle, og hvis du allerede har brugt siden på denne enhed, kan du ofte bare trykke Brug gemt login.</p>
+            {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
+            {!registrationClosed && !isComplete && <p className="info-txt">Manglende felter: {missingFields.join(', ')}.</p>}
+          </div>
+
+          {status && <p className={`status-msg${status.startsWith('❌') ? ' error' : ''}`}>{status}</p>}
         </div>
-        <p className="info-txt">Startkode er 123456 for alle. Du kan senere ændre den ved at udfylde Ny redigeringskode (valgfri).</p>
-        {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
-        {!registrationClosed && !isComplete && <p className="info-txt">Manglende felter: {missingFields.join(', ')}.</p>}
-        {status && <p className="status-msg">{status}</p>}
       </div>
 
       {serverData?.colleagues?.length > 0 && (

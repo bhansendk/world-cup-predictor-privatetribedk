@@ -184,6 +184,8 @@ a.lb-name-link:hover{color:#3b82f6}
 .submit-input { width: 100%; min-width: 0; }
 .submit-action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .submit-meta-list { display: grid; gap: 6px; padding: 2px 2px 0; }
+.compact-submit-panel .submit-panel-grid { grid-template-columns: 1fr; }
+.smart-login-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .name-input { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 10px 14px; font-size: .95em; min-width: 180px; }
 .name-input:focus { outline: none; border-color: #3b82f6; }
 .mode-select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 10px 14px; font-size: .9em; cursor: pointer; }
@@ -285,4 +287,5 @@ a.lb-name-link:hover{color:#3b82f6}
 
 @media (max-width: 820px) {
 	.submit-panel-grid { grid-template-columns: 1fr; }
+	.smart-login-row { align-items: stretch; }
 }
