@@ -186,10 +186,13 @@ export default async function handler(req, res) {
       }
 
       if (action === 'submit') {
-        const { name, mode, prediction, editCode } = body;
+        const { name, mode, prediction, editCode, adminPassword } = body;
         if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });
-        const predictionError = validatePrediction(mode, prediction);
-        if (predictionError) return res.status(400).json({ error: predictionError });
+        const isAdminSubmit = adminPassword === ADMIN_PASS;
+        if (!isAdminSubmit) {
+          const predictionError = validatePrediction(mode, prediction);
+          if (predictionError) return res.status(400).json({ error: predictionError });
+        }
         if (new Date() >= REVEAL_DATE) {
           return res.status(403).json({ error: 'Tilmelding er lukket. VM er startet.' });
         }

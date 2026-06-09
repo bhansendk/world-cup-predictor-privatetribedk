@@ -402,7 +402,7 @@ export default function KonkurrenceTab({
   const handleSubmit = async () => {
     if (registrationClosed) { setStatus('⛔ Tilmelding er lukket. VM er startet.'); return; }
     if (!name.trim()) { setStatus('Skriv dit navn!'); return; }
-    if (!modeComplete) {
+    if (!modeComplete && !isAdmin) {
       setStatus(mode === 'simple'
         ? `⚠️ Mangler i Hurtig mode: ${simpleMissing.join(', ')}`
         : `⚠️ Mangler i Fodboldinteresseret mode: ${advancedMissing.join(' | ')}`);
@@ -411,7 +411,7 @@ export default function KonkurrenceTab({
     const prediction = mode === 'simple'
       ? SIMPLE
       : { g: S.g, third: S.third, bracket: { r32: S.r32, r16: S.r16, qf: S.qf, sf: S.sf, final: S.final, bronze: S.bronze }, fun: FUN };
-    const res = await onSubmit(name.trim(), mode, prediction, editCode.trim());
+    const res = await onSubmit(name.trim(), mode, prediction, editCode.trim(), isAdmin ? adminPw.trim() : '');
     if (res.ok) {
       setMyName(name.trim());
       if (res.editCode) {
@@ -515,6 +515,9 @@ export default function KonkurrenceTab({
               ? `Manglende felter: ${simpleMissing.join(', ')}.`
               : `Manglende felter: ${advancedMissing.join(' | ')}.`}
           </p>
+        )}
+        {!registrationClosed && isAdmin && !modeComplete && (
+          <p className="info-txt">🔓 Admin kan indsende selvom ikke alle felter er udfyldt.</p>
         )}
         {status && <p className="status-msg">{status}</p>}
       </div>
