@@ -177,6 +177,13 @@ a.lb-name-link:hover{color:#3b82f6}
 .select-wrap select { flex: 1; background: none; border: none; color: #e2e8f0; font-size: .9em; outline: none; cursor: pointer; }
 .select-wrap select option { background: #1e293b; color: #e2e8f0; }
 .submit-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.submit-panel { display: grid; gap: 14px; }
+.submit-panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.submit-panel-block { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.submit-panel-label { color: #93c5fd; font-size: .78em; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.submit-input { width: 100%; min-width: 0; }
+.submit-action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.submit-meta-list { display: grid; gap: 6px; padding: 2px 2px 0; }
 .name-input { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 10px 14px; font-size: .95em; min-width: 180px; }
 .name-input:focus { outline: none; border-color: #3b82f6; }
 .mode-select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 10px 14px; font-size: .9em; cursor: pointer; }
@@ -275,3 +282,7 @@ a.lb-name-link:hover{color:#3b82f6}
 .lb-row.lb-locked { opacity: .7; cursor: default; }
 .lb-row.lb-locked:hover { background: #0f172a; }
 .lb-row.lb-own { border-left: 3px solid #3b82f6; }
+
+@media (max-width: 820px) {
+	.submit-panel-grid { grid-template-columns: 1fr; }
+}

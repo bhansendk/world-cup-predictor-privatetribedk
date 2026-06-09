@@ -47,6 +47,17 @@ function isDefaultInitialCode(code) {
   return normalizeEditCode(code) === DEFAULT_INITIAL_EDIT_CODE;
 }
 
+function usesDefaultEditCode(entry) {
+  return entry?.usesDefaultEditCode !== false;
+}
+
+function matchesEditCode(entry, code) {
+  const normalized = normalizeEditCode(code);
+  if (!normalized) return false;
+  if (entry?.editCodeHash && hashEditCode(normalized) === entry.editCodeHash) return true;
+  return usesDefaultEditCode(entry) && isDefaultInitialCode(normalized);
+}
+
 function hashEditCode(code) {
   return createHash('sha256').update(`${COMPETITION_SLUG}:${normalizeEditCode(code)}`).digest('hex');
 }
@@ -181,11 +192,11 @@ export default async function handler(req, res) {
         const normalized = normalizeName(name);
         const entry = (data.colleagues || []).find(c => normalizeName(c.name) === normalized);
         if (!entry) return res.status(404).json({ error: 'Ingen forudsigelse fundet for navnet' });
-        if (!entry.editCodeHash || hashEditCode(normalizedCode) !== entry.editCodeHash) {
+        if (!matchesEditCode(entry, normalizedCode)) {
           return res.status(403).json({ error: 'Forkert redigeringskode' });
         }
 
-        const { editCodeHash, ...safeEntry } = entry;
+        const { editCodeHash, usesDefaultEditCode: defaultCodeFlag, ...safeEntry } = entry;
         return res.status(200).json({ ok: true, entry: safeEntry });
       }
 
@@ -205,7 +216,8 @@ export default async function handler(req, res) {
           mode,
           prediction,
           submittedAt: new Date().toISOString(),
-          editCodeHash: existing?.editCodeHash || null
+          editCodeHash: existing?.editCodeHash || null,
+          usesDefaultEditCode: existing?.usesDefaultEditCode !== false
         };
         if (idx >= 0) data.colleagues[idx] = entry;
         else data.colleagues.push(entry);
@@ -247,7 +259,7 @@ export default async function handler(req, res) {
                 error: 'Denne forudsigelse findes allerede. Indtast din redigeringskode for at opdatere.'
               });
             }
-            if (hashEditCode(normalizedCode) !== existing.editCodeHash) {
+            if (!matchesEditCode(existing, normalizedCode)) {
               return res.status(403).json({ error: 'Forkert redigeringskode' });
             }
 
@@ -260,7 +272,7 @@ export default async function handler(req, res) {
               ) {
                 return res.status(409).json({ error: 'Den nye redigeringskode er allerede i brug' });
               }
-              codeChanged = nextHash !== existing.editCodeHash;
+              codeChanged = nextHash !== existing.editCodeHash || usesDefaultEditCode(existing) !== isDefaultInitialCode(normalizedNewCode);
             }
           } else if (!normalizedCode) {
             resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
@@ -278,7 +290,8 @@ export default async function handler(req, res) {
             mode,
             prediction,
             submittedAt: nowIso,
-            editCodeHash: existing?.editCodeHash || hashEditCode(resolvedCode)
+            editCodeHash: hashEditCode(resolvedCode || DEFAULT_INITIAL_EDIT_CODE),
+            usesDefaultEditCode: isDefaultInitialCode(resolvedCode || DEFAULT_INITIAL_EDIT_CODE)
           };
           data.colleagues[idx] = entry;
         } else {
@@ -298,7 +311,8 @@ export default async function handler(req, res) {
             mode,
             prediction,
             submittedAt: nowIso,
-            editCodeHash: hashEditCode(resolvedCode)
+            editCodeHash: hashEditCode(resolvedCode),
+            usesDefaultEditCode: isDefaultInitialCode(resolvedCode)
           };
           data.colleagues.push(entry);
         }

@@ -507,51 +507,67 @@ export default function KonkurrenceTab({
 
       <div className="section-card">
         <h3>📤 Send din forudsigelse</h3>
-        <div className="submit-row">
-          <input
-            type="text"
-            className="name-input"
-            placeholder="Dit navn"
-            value={name}
-            onChange={e => setName(e.target.value)}
-          />
-          <input
-            type="text"
-            className="name-input"
-            placeholder="Redigeringskode"
-            value={editCode}
-            onChange={e => setEditCode(e.target.value.toUpperCase())}
-          />
-          <input
-            type="text"
-            className="name-input"
-            placeholder="Ny redigeringskode (valgfri)"
-            value={newEditCode}
-            onChange={e => setNewEditCode(e.target.value.toUpperCase())}
-          />
-          <select value={mode} onChange={e => setMode(e.target.value)} className="mode-select">
-            <option value="advanced">⭐ Fodboldinteresseret</option>
-            <option value="simple">⚡ Hurtig</option>
-          </select>
-          <button className="btn-primary" onClick={handleSubmit} disabled={!canSubmit}>
-            {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send ✈️'}
-          </button>
-          <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>🔐 Log ind og hent</button>
-          <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil</button>
+        <div className="submit-panel">
+          <div className="submit-panel-grid">
+            <div className="submit-panel-block">
+              <div className="submit-panel-label">Bruger</div>
+              <input
+                type="text"
+                className="name-input submit-input"
+                placeholder="Dit navn"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+              <select value={mode} onChange={e => setMode(e.target.value)} className="mode-select submit-input">
+                <option value="advanced">⭐ Fodboldinteresseret</option>
+                <option value="simple">⚡ Hurtig</option>
+              </select>
+            </div>
+
+            <div className="submit-panel-block">
+              <div className="submit-panel-label">Login og kode</div>
+              <input
+                type="text"
+                className="name-input submit-input"
+                placeholder="Redigeringskode"
+                value={editCode}
+                onChange={e => setEditCode(e.target.value.toUpperCase())}
+              />
+              <input
+                type="text"
+                className="name-input submit-input"
+                placeholder="Ny redigeringskode (valgfri)"
+                value={newEditCode}
+                onChange={e => setNewEditCode(e.target.value.toUpperCase())}
+              />
+            </div>
+          </div>
+
+          <div className="submit-action-row">
+            <button className="btn-primary" onClick={handleSubmit} disabled={!canSubmit}>
+              {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send ✈️'}
+            </button>
+            <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>🔐 Log ind og hent</button>
+            <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil</button>
+          </div>
+
+          <div className="submit-meta-list">
+            {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
+            <p className="info-txt">Startkode er 123456 for alle. Du kan senere ændre den ved at udfylde Ny redigeringskode.</p>
+            {!registrationClosed && !modeComplete && (
+              <p className="info-txt">
+                {mode === 'simple'
+                  ? `Manglende felter: ${simpleMissing.join(', ')}.`
+                  : `Manglende felter: ${advancedMissing.join(' | ')}.`}
+              </p>
+            )}
+            {!registrationClosed && isAdmin && !modeComplete && (
+              <p className="info-txt">🔓 Admin kan indsende selvom ikke alle felter er udfyldt.</p>
+            )}
+          </div>
+
+          {status && <p className={`status-msg${status.startsWith('❌') ? ' error' : ''}`}>{status}</p>}
         </div>
-        {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
-        <p className="info-txt">Startkode er 123456 for alle. Du kan senere ændre den ved at udfylde Ny redigeringskode (valgfri).</p>
-        {!registrationClosed && !modeComplete && (
-          <p className="info-txt">
-            {mode === 'simple'
-              ? `Manglende felter: ${simpleMissing.join(', ')}.`
-              : `Manglende felter: ${advancedMissing.join(' | ')}.`}
-          </p>
-        )}
-        {!registrationClosed && isAdmin && !modeComplete && (
-          <p className="info-txt">🔓 Admin kan indsende selvom ikke alle felter er udfyldt.</p>
-        )}
-        {status && <p className="status-msg">{status}</p>}
       </div>
 
       <div className="section-card">
