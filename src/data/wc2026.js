@@ -39,19 +39,21 @@ export function flagImg(team) {
 }
 
 // Official FIFA 2026 R32 bracket (3c = third-place team, index into COMBO slot)
+// Left half (→ SF1): QF_A (m1-m4: 1E,1I,2A/2B,1F) + QF_B (m9-m12: 2K/2L,1H,1D,1G)
+// Right half (→ SF2): QF_C (m5-m8: 1C,2E/2I,1A,1L) + QF_D (m13-m16: 1J,2D/2G,1B,1K)
 export const R32 = [
   {id:'m1',  a:['1','E'], b:['3c',3]},
   {id:'m2',  a:['1','I'], b:['3c',5]},
   {id:'m3',  a:['2','A'], b:['2','B']},
   {id:'m4',  a:['1','F'], b:['2','C']},
-  {id:'m5',  a:['1','C'], b:['2','F']},
-  {id:'m6',  a:['2','E'], b:['2','I']},
-  {id:'m7',  a:['1','A'], b:['3c',0]},
-  {id:'m8',  a:['1','L'], b:['3c',7]},
   {id:'m9',  a:['2','K'], b:['2','L']},
   {id:'m10', a:['1','H'], b:['2','J']},
   {id:'m11', a:['1','D'], b:['3c',2]},
   {id:'m12', a:['1','G'], b:['3c',4]},
+  {id:'m5',  a:['1','C'], b:['2','F']},
+  {id:'m6',  a:['2','E'], b:['2','I']},
+  {id:'m7',  a:['1','A'], b:['3c',0]},
+  {id:'m8',  a:['1','L'], b:['3c',7]},
   {id:'m13', a:['1','J'], b:['2','H']},
   {id:'m14', a:['2','D'], b:['2','G']},
   {id:'m15', a:['1','B'], b:['3c',1]},
