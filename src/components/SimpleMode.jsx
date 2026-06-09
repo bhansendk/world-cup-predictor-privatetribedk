@@ -36,6 +36,7 @@ export default function SimpleMode({
 }) {
   const [name, setName] = useState(myName || '');
   const [editCode, setEditCode] = useState(myEditCode || '');
+  const [newEditCode, setNewEditCode] = useState('');
   const [status, setStatus] = useState('');
   const revealTs = serverData?.revealDate ? Date.parse(serverData.revealDate) : Date.parse('2026-06-11T19:00:00Z');
   const registrationClosed = Number.isFinite(revealTs) ? Date.now() >= revealTs : false;
@@ -50,16 +51,21 @@ export default function SimpleMode({
       return;
     }
     const prediction = { ...SIMPLE };
-    const res = await onSubmit(name.trim(), 'simple', prediction, editCode.trim());
+    const res = await onSubmit(name.trim(), 'simple', prediction, editCode.trim(), '', newEditCode.trim());
     if (res.ok) {
       setMyName(name.trim());
       if (res.editCode) {
         setEditCode(res.editCode);
         setMyEditCode(res.editCode);
       }
-      setStatus(res.codeGenerated && res.editCode
-        ? `✅ Forudsigelse gemt! Din redigeringskode er: ${res.editCode}. Gem den, hvis du vil rette senere.`
-        : '✅ Forudsigelse gemt!');
+      setNewEditCode('');
+      if (res.codeChanged && res.editCode) {
+        setStatus(`✅ Forudsigelse gemt! Din redigeringskode er nu: ${res.editCode}.`);
+      } else if (res.codeGenerated && res.editCode) {
+        setStatus(`✅ Forudsigelse gemt! Din redigeringskode er: ${res.editCode}. Gem den, hvis du vil rette senere.`);
+      } else {
+        setStatus('✅ Forudsigelse gemt!');
+      }
     }
     else setStatus('❌ Fejl: ' + res.error);
   };
@@ -141,6 +147,13 @@ export default function SimpleMode({
             value={editCode}
             onChange={e => setEditCode(e.target.value.toUpperCase())}
           />
+          <input
+            type="text"
+            className="name-input"
+            placeholder="Ny redigeringskode (valgfri)"
+            value={newEditCode}
+            onChange={e => setNewEditCode(e.target.value.toUpperCase())}
+          />
           <button className="btn-primary" onClick={handleSubmit} disabled={loading || registrationClosed}>
             {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send forudsigelse ✈️'}
           </button>
@@ -149,7 +162,7 @@ export default function SimpleMode({
           <button className="btn-ghost btn-sm" onClick={onResetFun}>🧹 Nulstil sjove tips</button>
           <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil alt</button>
         </div>
-        <p className="info-txt">Første gang du sender, får du en redigeringskode. Brug navn + kode til at logge ind og hente din egen besvarelse.</p>
+        <p className="info-txt">Startkode er 123456 for alle. Du kan senere ændre den ved at udfylde Ny redigeringskode (valgfri).</p>
         {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
         {!registrationClosed && !isComplete && <p className="info-txt">Manglende felter: {missingFields.join(', ')}.</p>}
         {status && <p className="status-msg">{status}</p>}

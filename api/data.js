@@ -14,6 +14,7 @@ const QF_IDS = ['qf_0', 'qf_1', 'qf_2', 'qf_3'];
 const SF_IDS = ['sf_0', 'sf_1'];
 const EDIT_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const EDIT_CODE_LENGTH = 8;
+const DEFAULT_INITIAL_EDIT_CODE = '123456';
 
 // VM 2026 kickoff: 11. juni 2026 kl. 21:00 CEST (UTC+2) = 19:00 UTC
 const REVEAL_DATE = new Date('2026-06-11T19:00:00Z');
@@ -35,6 +36,15 @@ function normalizeEditCode(code) {
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
+}
+
+function isValidEditCode(code) {
+  const normalized = normalizeEditCode(code);
+  return normalized.length >= 6 && normalized.length <= 20;
+}
+
+function isDefaultInitialCode(code) {
+  return normalizeEditCode(code) === DEFAULT_INITIAL_EDIT_CODE;
 }
 
 function hashEditCode(code) {
@@ -204,7 +214,7 @@ export default async function handler(req, res) {
       }
 
       if (action === 'submit') {
-        const { name, mode, prediction, editCode, adminPassword } = body;
+        const { name, mode, prediction, editCode, newEditCode, adminPassword } = body;
         if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });
         const isAdminSubmit = adminPassword === ADMIN_PASS;
         if (!isAdminSubmit) {
@@ -218,10 +228,15 @@ export default async function handler(req, res) {
         const normalized = normalizeName(name);
         const idx = data.colleagues.findIndex(c => normalizeName(c.name) === normalized);
         const normalizedCode = normalizeEditCode(editCode);
+        const normalizedNewCode = normalizeEditCode(newEditCode);
+        if (normalizedNewCode && !isValidEditCode(normalizedNewCode)) {
+          return res.status(400).json({ error: 'Ny redigeringskode skal vaere 6-20 tegn (A-Z, 0-9)' });
+        }
         const existingHashes = new Set((data.colleagues || []).map(c => c.editCodeHash).filter(Boolean));
 
-        let resolvedCode = normalizedCode;
+        let resolvedCode = normalizedNewCode || normalizedCode;
         let codeGenerated = false;
+        let codeChanged = false;
         const nowIso = new Date().toISOString();
 
         if (idx >= 0) {
@@ -235,9 +250,27 @@ export default async function handler(req, res) {
             if (hashEditCode(normalizedCode) !== existing.editCodeHash) {
               return res.status(403).json({ error: 'Forkert redigeringskode' });
             }
+
+            if (normalizedNewCode) {
+              const nextHash = hashEditCode(normalizedNewCode);
+              if (
+                nextHash !== existing.editCodeHash &&
+                existingHashes.has(nextHash) &&
+                !isDefaultInitialCode(normalizedNewCode)
+              ) {
+                return res.status(409).json({ error: 'Den nye redigeringskode er allerede i brug' });
+              }
+              codeChanged = nextHash !== existing.editCodeHash;
+            }
           } else if (!normalizedCode) {
-            resolvedCode = createUniqueEditCode(existingHashes);
+            resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
             codeGenerated = true;
+          } else if (normalizedNewCode) {
+            const nextHash = hashEditCode(normalizedNewCode);
+            if (existingHashes.has(nextHash) && !isDefaultInitialCode(normalizedNewCode)) {
+              return res.status(409).json({ error: 'Den nye redigeringskode er allerede i brug' });
+            }
+            codeChanged = true;
           }
 
           const entry = {
@@ -250,8 +283,15 @@ export default async function handler(req, res) {
           data.colleagues[idx] = entry;
         } else {
           if (!resolvedCode) {
-            resolvedCode = createUniqueEditCode(existingHashes);
+            resolvedCode = DEFAULT_INITIAL_EDIT_CODE;
             codeGenerated = true;
+          }
+          if (
+            hashEditCode(resolvedCode) &&
+            existingHashes.has(hashEditCode(resolvedCode)) &&
+            !isDefaultInitialCode(resolvedCode)
+          ) {
+            return res.status(409).json({ error: 'Redigeringskoden er allerede i brug' });
           }
           const entry = {
             name: name.trim().replace(/\s+/g, ' '),
@@ -264,7 +304,7 @@ export default async function handler(req, res) {
         }
 
         await writeBlob(data);
-        return res.status(200).json({ ok: true, editCode: resolvedCode, codeGenerated });
+        return res.status(200).json({ ok: true, editCode: resolvedCode, codeGenerated, codeChanged });
       }
 
       if (action === 'results') {
