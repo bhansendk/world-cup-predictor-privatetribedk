@@ -1,4 +1,5 @@
 import { put, list } from '@vercel/blob';
+import { createHash, randomBytes } from 'crypto';
 
 const COMPETITION_SLUG = (process.env.COMPETITION_SLUG || 'privattribedk').toLowerCase().replace(/[^a-z0-9-_]/g, '-');
 const BLOB_NAME = process.env.BLOB_DATA_FILE || `wc2026-${COMPETITION_SLUG}.json`;
@@ -11,6 +12,8 @@ const R32_IDS = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm
 const R16_IDS = ['r16_0', 'r16_1', 'r16_2', 'r16_3', 'r16_4', 'r16_5', 'r16_6', 'r16_7'];
 const QF_IDS = ['qf_0', 'qf_1', 'qf_2', 'qf_3'];
 const SF_IDS = ['sf_0', 'sf_1'];
+const EDIT_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const EDIT_CODE_LENGTH = 8;
 
 // VM 2026 kickoff: 11. juni 2026 kl. 21:00 CEST (UTC+2) = 19:00 UTC
 const REVEAL_DATE = new Date('2026-06-11T19:00:00Z');
@@ -25,6 +28,34 @@ function normalizeName(name) {
 function hasValue(v) {
   if (typeof v === 'string') return v.trim().length > 0;
   return v !== null && v !== undefined;
+}
+
+function normalizeEditCode(code) {
+  return String(code || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function hashEditCode(code) {
+  return createHash('sha256').update(`${COMPETITION_SLUG}:${normalizeEditCode(code)}`).digest('hex');
+}
+
+function generateEditCode() {
+  const bytes = randomBytes(EDIT_CODE_LENGTH);
+  let out = '';
+  for (let i = 0; i < EDIT_CODE_LENGTH; i += 1) {
+    out += EDIT_CODE_ALPHABET[bytes[i] % EDIT_CODE_ALPHABET.length];
+  }
+  return out;
+}
+
+function createUniqueEditCode(existingHashes) {
+  for (let i = 0; i < 10; i += 1) {
+    const code = generateEditCode();
+    if (!existingHashes.has(hashEditCode(code))) return code;
+  }
+  throw new Error('Kunne ikke generere unik redigeringskode');
 }
 
 function hasAllKeys(obj, keys) {
@@ -102,18 +133,22 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const data = await readBlob();
+      const withoutCodeHash = {
+        ...data,
+        colleagues: (data.colleagues || []).map(({ editCodeHash, ...rest }) => rest)
+      };
       const isAdmin = req.query.password === ADMIN_PASS;
       const revealed = new Date() >= REVEAL_DATE;
       if (!revealed && !isAdmin) {
         // Strip predictions - only return name, mode, submittedAt
         return res.status(200).json({
-          ...data,
+          ...withoutCodeHash,
           revealed: false,
           revealDate: REVEAL_DATE.toISOString(),
-          colleagues: data.colleagues.map(({ name, mode, submittedAt }) => ({ name, mode, submittedAt })),
+          colleagues: (withoutCodeHash.colleagues || []).map(({ name, mode, submittedAt }) => ({ name, mode, submittedAt })),
         });
       }
-      return res.status(200).json({ ...data, revealed: true, revealDate: REVEAL_DATE.toISOString() });
+      return res.status(200).json({ ...withoutCodeHash, revealed: true, revealDate: REVEAL_DATE.toISOString() });
     }
 
     if (req.method === 'POST') {
@@ -136,7 +171,14 @@ export default async function handler(req, res) {
         const data = await readBlob();
         const normalized = normalizeName(name);
         const idx = data.colleagues.findIndex(c => normalizeName(c.name) === normalized);
-        const entry = { name: name.trim().replace(/\s+/g, ' '), mode, prediction, submittedAt: new Date().toISOString() };
+        const existing = idx >= 0 ? data.colleagues[idx] : null;
+        const entry = {
+          name: name.trim().replace(/\s+/g, ' '),
+          mode,
+          prediction,
+          submittedAt: new Date().toISOString(),
+          editCodeHash: existing?.editCodeHash || null
+        };
         if (idx >= 0) data.colleagues[idx] = entry;
         else data.colleagues.push(entry);
         await writeBlob(data);
@@ -144,7 +186,7 @@ export default async function handler(req, res) {
       }
 
       if (action === 'submit') {
-        const { name, mode, prediction } = body;
+        const { name, mode, prediction, editCode } = body;
         if (!name?.trim()) return res.status(400).json({ error: 'Navn mangler' });
         const predictionError = validatePrediction(mode, prediction);
         if (predictionError) return res.status(400).json({ error: predictionError });
@@ -154,11 +196,54 @@ export default async function handler(req, res) {
         const data = await readBlob();
         const normalized = normalizeName(name);
         const idx = data.colleagues.findIndex(c => normalizeName(c.name) === normalized);
-        const entry = { name: name.trim().replace(/\s+/g, ' '), mode, prediction, submittedAt: new Date().toISOString() };
-        if (idx >= 0) data.colleagues[idx] = entry;
-        else data.colleagues.push(entry);
+        const normalizedCode = normalizeEditCode(editCode);
+        const existingHashes = new Set((data.colleagues || []).map(c => c.editCodeHash).filter(Boolean));
+
+        let resolvedCode = normalizedCode;
+        let codeGenerated = false;
+        const nowIso = new Date().toISOString();
+
+        if (idx >= 0) {
+          const existing = data.colleagues[idx];
+          if (existing?.editCodeHash) {
+            if (!normalizedCode) {
+              return res.status(409).json({
+                error: 'Denne forudsigelse findes allerede. Indtast din redigeringskode for at opdatere.'
+              });
+            }
+            if (hashEditCode(normalizedCode) !== existing.editCodeHash) {
+              return res.status(403).json({ error: 'Forkert redigeringskode' });
+            }
+          } else if (!normalizedCode) {
+            resolvedCode = createUniqueEditCode(existingHashes);
+            codeGenerated = true;
+          }
+
+          const entry = {
+            name: name.trim().replace(/\s+/g, ' '),
+            mode,
+            prediction,
+            submittedAt: nowIso,
+            editCodeHash: existing?.editCodeHash || hashEditCode(resolvedCode)
+          };
+          data.colleagues[idx] = entry;
+        } else {
+          if (!resolvedCode) {
+            resolvedCode = createUniqueEditCode(existingHashes);
+            codeGenerated = true;
+          }
+          const entry = {
+            name: name.trim().replace(/\s+/g, ' '),
+            mode,
+            prediction,
+            submittedAt: nowIso,
+            editCodeHash: hashEditCode(resolvedCode)
+          };
+          data.colleagues.push(entry);
+        }
+
         await writeBlob(data);
-        return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true, editCode: resolvedCode, codeGenerated });
       }
 
       if (action === 'results') {

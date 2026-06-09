@@ -23,7 +23,7 @@ function flagImg(team) {
   return `<span class="fi fi-${code}" style="margin-right:5px"></span>`;
 }
 
-export default function BracketTab({ S, onPick, showHeader = true, notReadyMessage, readOnly = false }) {
+export default function BracketTab({ S, onPick, showHeader = true, notReadyMessage, readOnly = false, onResetBracket }) {
   const containerRef = useRef(null);
 
   const isReady = () => {
@@ -186,6 +186,11 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
         <div className="section-header">
           <h2>🏆 Bracket</h2>
           <p>Klik på et hold for at vælge vinderen. Klik igen for at fortryde.</p>
+          {!readOnly && (
+            <div className="submit-row" style={{ marginTop: 12 }}>
+              <button className="btn-ghost btn-sm" onClick={() => onResetBracket?.()}>🧹 Nulstil bracket</button>
+            </div>
+          )}
         </div>
       )}
       <div className="bracket-scroll">

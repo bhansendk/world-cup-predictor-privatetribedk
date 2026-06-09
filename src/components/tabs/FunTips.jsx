@@ -1,12 +1,16 @@
 import { FUN_QUESTIONS, FUN_PTS } from '../../data/wc2026.js';
 import { FlagSpan } from '../FormFields.jsx';
 
-export default function FunTipsTab({ FUN, updateFun }) {
+export default function FunTipsTab({ FUN, updateFun, onResetFun, onResetAll }) {
   return (
     <div className="tab-content">
       <div className="section-header">
         <h2>🎯 Sjove tips</h2>
         <p>Gæt rigtigt og hent ekstra point!</p>
+        <div className="submit-row" style={{ marginTop: 12 }}>
+          <button className="btn-ghost btn-sm" onClick={() => onResetFun?.()}>🧹 Nulstil sjove tips</button>
+          <button className="btn-ghost btn-sm" onClick={() => onResetAll?.()}>🗑️ Nulstil alt</button>
+        </div>
       </div>
       <div className="fun-grid">
         {FUN_QUESTIONS.map(q => (

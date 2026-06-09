@@ -25,6 +25,10 @@ import AdvancedMode from './components/AdvancedMode.jsx';
 import WinnerBanner from './components/WinnerBanner.jsx';
 import { extractSimpleFromAdvanced } from './lib/scoring.js';
 
+const GROUP_KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+const SIMPLE_TOP4_KEYS = ['top1', 'top2', 'top3', 'top4'];
+const SHARED_FUN_KEYS = ['topscorer', 'golden_ball', 'most_yellow', 'most_goals_team'];
+
 export default function App() {
   const local = useLocalState();
   const server = useServerData();
@@ -34,7 +38,7 @@ export default function App() {
   const [showModeIntro, setShowModeIntro] = useState(false);
 
   const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird, updateBracketRound,
-          updateFun, updateSimple, resetAll, setS, setFUN, setSIMPLE } = local;
+      updateFun, updateSimple, resetAll, setS, setFUN, setSIMPLE, myEditCode, setMyEditCode } = local;
 
   // Sync bracket → simple
   const syncBracketToSimple = useCallback((newS) => {
@@ -77,6 +81,70 @@ export default function App() {
     setShowWarn(false);
     setPendingSimpleChange(null);
   }, [pendingSimpleChange, updateSimple, setS]);
+
+  const resetGroupsOnly = useCallback(() => {
+    setS(prev => ({
+      ...prev,
+      g: {},
+      third: [],
+      r32: {},
+      r16: {},
+      qf: {},
+      sf: {},
+      final: {},
+      bronze: {}
+    }));
+    SIMPLE_TOP4_KEYS.forEach(k => updateSimple(k, null));
+  }, [setS, updateSimple]);
+
+  const resetThirdOnly = useCallback(() => {
+    setS(prev => ({
+      ...prev,
+      third: [],
+      r32: {},
+      r16: {},
+      qf: {},
+      sf: {},
+      final: {},
+      bronze: {}
+    }));
+    SIMPLE_TOP4_KEYS.forEach(k => updateSimple(k, null));
+  }, [setS, updateSimple]);
+
+  const resetBracketOnly = useCallback(() => {
+    setS(prev => {
+      const next = {
+        ...prev,
+        r32: {},
+        r16: {},
+        qf: {},
+        sf: {},
+        final: {},
+        bronze: {}
+      };
+      setTimeout(() => syncBracketToSimple(next), 0);
+      return next;
+    });
+  }, [setS, syncBracketToSimple]);
+
+  const resetFunOnly = useCallback(() => {
+    SHARED_FUN_KEYS.forEach(k => updateSimple(k, null));
+    setFUN(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => {
+        next[k] = null;
+      });
+      return next;
+    });
+  }, [setFUN, updateSimple]);
+
+  const resetSimpleTop4Only = useCallback(() => {
+    SIMPLE_TOP4_KEYS.forEach(k => updateSimple(k, null));
+  }, [updateSimple]);
+
+  const resetSimpleFunOnly = useCallback(() => {
+    SHARED_FUN_KEYS.forEach(k => updateSimple(k, null));
+  }, [updateSimple]);
 
   if (!mode) {
     return <ModeSelector onSelect={(m) => { setMode(m); setShowModeIntro(true); }} />;
@@ -136,8 +204,12 @@ export default function App() {
           onSubmit={server.submitPrediction}
           loading={server.loading}
           onReset={resetAll}
+          onResetTop4={resetSimpleTop4Only}
+          onResetFun={resetSimpleFunOnly}
           myName={myName}
           setMyName={setMyName}
+          myEditCode={myEditCode}
+          setMyEditCode={setMyEditCode}
         />
       ) : (
         <AdvancedMode
@@ -161,11 +233,17 @@ export default function App() {
           loading={server.loading}
           fetchData={server.fetchData}
           onReset={resetAll}
+          onResetGroups={resetGroupsOnly}
+          onResetThird={resetThirdOnly}
+          onResetBracket={resetBracketOnly}
+          onResetFun={resetFunOnly}
           setS={setS}
           setFUN={setFUN}
           setSIMPLE={setSIMPLE}
           myName={myName}
           setMyName={setMyName}
+          myEditCode={myEditCode}
+          setMyEditCode={setMyEditCode}
         />
       )}
     </div>

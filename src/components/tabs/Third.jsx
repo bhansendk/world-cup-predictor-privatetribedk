@@ -1,7 +1,7 @@
 import { GROUPS } from '../../data/wc2026.js';
 import { FlagSpan } from '../FormFields.jsx';
 
-export default function ThirdTab({ S, setThird }) {
+export default function ThirdTab({ S, setThird, onResetThird }) {
   const sel = S.third || [];
   const allGroupsFilled = Object.keys(GROUPS).every(k => {
     const g = S.g[k] || {};
@@ -23,6 +23,9 @@ export default function ThirdTab({ S, setThird }) {
           De 8 bedste tredjepladser avancerer — påvirker bracket-seeding.
           {!allGroupsFilled && <span className="warn-txt"> Udfyld grupperunden først.</span>}
         </p>
+        <div className="submit-row" style={{ marginTop: 12 }}>
+          <button className="btn-ghost btn-sm" onClick={() => onResetThird?.()}>🧹 Nulstil 3'ere</button>
+        </div>
         {sel.length === 8 && <div className="success-banner">✅ 8 bedste 3'ere valgt! Gå videre til Bracket.</div>}
       </div>
       <div className="third-grid">

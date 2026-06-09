@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const LS_KEY = 'vm2026_tirsdagsklubben';
 const LS_MYNAME_KEY = 'vm2026_tirsdagsklubben_myname';
+const LS_MYCODE_KEY = 'vm2026_tirsdagsklubben_editcode';
 
 const EMPTY_S = { g: {}, third: [], r32: {}, r16: {}, qf: {}, sf: {}, final: {}, bronze: {} };
 const EMPTY_SIMPLE = {
@@ -54,11 +55,25 @@ export default function useLocalState() {
       return '';
     }
   });
+  const [myEditCode, setMyEditCodeRaw] = useState(() => {
+    try {
+      return localStorage.getItem(LS_MYCODE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
 
   const setMyName = useCallback((name) => {
     setMyNameRaw(name);
     try {
       localStorage.setItem(LS_MYNAME_KEY, name);
+    } catch {}
+  }, []);
+
+  const setMyEditCode = useCallback((code) => {
+    setMyEditCodeRaw(code);
+    try {
+      localStorage.setItem(LS_MYCODE_KEY, code);
     } catch {}
   }, []);
 
@@ -117,6 +132,7 @@ export default function useLocalState() {
     mode, setMode,
     S, FUN, SIMPLE,
     myName, setMyName,
+    myEditCode, setMyEditCode,
     updateGroup, setThird, updateBracketRound,
     updateFun, updateSimple,
     resetAll, loadFromObject,

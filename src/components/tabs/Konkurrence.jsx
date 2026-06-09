@@ -344,8 +344,24 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
   );
 }
 
-export default function KonkurrenceTab({ S, FUN, SIMPLE, serverData, onSubmit, loading, onReset, myName, setMyName, adminVerify, adminLogout, isAdmin }) {
+export default function KonkurrenceTab({
+  S,
+  FUN,
+  SIMPLE,
+  serverData,
+  onSubmit,
+  loading,
+  onReset,
+  myName,
+  setMyName,
+  myEditCode,
+  setMyEditCode,
+  adminVerify,
+  adminLogout,
+  isAdmin
+}) {
   const [name, setName] = useState(myName || '');
+  const [editCode, setEditCode] = useState(myEditCode || '');
   const [status, setStatus] = useState('');
   const [mode, setMode] = useState('advanced');
   const [adminPw, setAdminPw] = useState('');
@@ -395,10 +411,16 @@ export default function KonkurrenceTab({ S, FUN, SIMPLE, serverData, onSubmit, l
     const prediction = mode === 'simple'
       ? SIMPLE
       : { g: S.g, third: S.third, bracket: { r32: S.r32, r16: S.r16, qf: S.qf, sf: S.sf, final: S.final, bronze: S.bronze }, fun: FUN };
-    const res = await onSubmit(name.trim(), mode, prediction);
+    const res = await onSubmit(name.trim(), mode, prediction, editCode.trim());
     if (res.ok) {
       setMyName(name.trim());
-      setStatus('✅ Gemt!');
+      if (res.editCode) {
+        setEditCode(res.editCode);
+        setMyEditCode(res.editCode);
+      }
+      setStatus(res.codeGenerated && res.editCode
+        ? `✅ Gemt! Din redigeringskode er: ${res.editCode}. Gem den, hvis du vil rette senere.`
+        : '✅ Gemt!');
     } else {
       setStatus('❌ ' + res.error);
     }
@@ -469,6 +491,13 @@ export default function KonkurrenceTab({ S, FUN, SIMPLE, serverData, onSubmit, l
             value={name}
             onChange={e => setName(e.target.value)}
           />
+          <input
+            type="text"
+            className="name-input"
+            placeholder="Redigeringskode"
+            value={editCode}
+            onChange={e => setEditCode(e.target.value.toUpperCase())}
+          />
           <select value={mode} onChange={e => setMode(e.target.value)} className="mode-select">
             <option value="advanced">⭐ Fodboldinteresseret</option>
             <option value="simple">⚡ Hurtig</option>
@@ -479,6 +508,7 @@ export default function KonkurrenceTab({ S, FUN, SIMPLE, serverData, onSubmit, l
           <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil</button>
         </div>
         {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
+        <p className="info-txt">Første gang du sender, får du en redigeringskode. Brug samme kode for at rette dit bud senere.</p>
         {!registrationClosed && !modeComplete && (
           <p className="info-txt">
             {mode === 'simple'

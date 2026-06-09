@@ -69,18 +69,22 @@ export default function useServerData() {
     return () => clearInterval(pollRef.current);
   }, [fetchData]);
 
-  const submitPrediction = useCallback(async (name, mode, prediction) => {
+  const submitPrediction = useCallback(async (name, mode, prediction, editCode = '') => {
     setLoading(true);
     try {
       const res = await fetch('/api/data?action=submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, mode, prediction })
+        body: JSON.stringify({ name, mode, prediction, editCode })
       });
       const parsed = await parseApiResponse(res);
       if (!parsed.ok) throw new Error(buildApiError(parsed, 'Fejl ved indsendelse'));
       await fetchData();
-      return { ok: true };
+      return {
+        ok: true,
+        editCode: parsed?.data?.editCode || '',
+        codeGenerated: !!parsed?.data?.codeGenerated
+      };
     } catch (e) {
       return { ok: false, error: e.message };
     } finally {
