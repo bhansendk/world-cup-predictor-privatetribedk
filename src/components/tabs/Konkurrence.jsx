@@ -7,6 +7,16 @@ import BracketTab from './Bracket.jsx';
 const REVEAL_DATE = new Date('2026-06-01T19:00:00Z');
 // Admin kan se alles forudsigelser i komprimeret visning før turneringsstart
 const ADMIN_PREVIEW_UNTIL = new Date('2026-06-11T19:00:00Z');
+const SIMPLE_FIELDS = [
+  { key: 'top1', label: 'Mester' },
+  { key: 'top2', label: 'Runner-up' },
+  { key: 'top3', label: 'Nr. 3' },
+  { key: 'top4', label: 'Nr. 4' },
+  { key: 'topscorer', label: 'Topscorer' },
+  { key: 'golden_ball', label: 'Gyldne Bold' },
+  { key: 'most_yellow', label: 'Flest gule kort - hold' },
+  { key: 'most_goals_team', label: 'Flest mål - hold' }
+];
 
 function isFilled(v) {
   if (typeof v === 'string') return v.trim().length > 0;
