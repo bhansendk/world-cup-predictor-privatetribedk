@@ -26,6 +26,13 @@ function buildApiError(parsed, fallback) {
   return fallback;
 }
 
+function normalizeName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 export default function useServerData() {
   const [serverData, setServerData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -150,25 +157,6 @@ export default function useServerData() {
     }
   }, [fetchData]);
 
-  const adminImportPrediction = useCallback(async (name, mode, prediction, password) => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/data?action=adminImport', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, mode, prediction, password })
-      });
-      const parsed = await parseApiResponse(res);
-      if (!parsed.ok) throw new Error(buildApiError(parsed, 'Import fejlede'));
-      await fetchData();
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: e.message };
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchData]);
-
   const adminVerifyPassword = useCallback(async (password) => {
     setLoading(true);
     try {
@@ -207,8 +195,10 @@ export default function useServerData() {
       setServerData(prev => {
         if (!prev) return prev;
         const current = Array.isArray(prev.colleagues) ? prev.colleagues : [];
-        return { ...prev, colleagues: current.filter(c => c.name !== name) };
+        const target = normalizeName(name);
+        return { ...prev, colleagues: current.filter(c => normalizeName(c.name) !== target) };
       });
+      await fetchData();
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -227,6 +217,7 @@ export default function useServerData() {
         if (!prev) return prev;
         return { ...prev, colleagues: [] };
       });
+      await fetchData();
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -238,7 +229,7 @@ export default function useServerData() {
   return {
     serverData, loading, error, fetchData,
     submitPrediction, autosavePrediction, fetchMyPrediction,
-    adminUpdateResults, adminImportPrediction, adminDeleteOne, adminClearAll, adminVerifyPassword,
+    adminUpdateResults, adminDeleteOne, adminClearAll, adminVerifyPassword,
     adminLogout, isAdmin, adminPassword
   };
 }

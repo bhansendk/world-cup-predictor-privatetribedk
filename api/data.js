@@ -363,9 +363,15 @@ export default async function handler(req, res) {
       if (name) {
         if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });
         const data = await readBlob();
-        data.colleagues = data.colleagues.filter(c => c.name.toLowerCase() !== name.toLowerCase());
+        const target = normalizeName(name);
+        const before = (data.colleagues || []).length;
+        data.colleagues = (data.colleagues || []).filter(c => normalizeName(c.name) !== target);
+        const deleted = before - data.colleagues.length;
+        if (deleted === 0) {
+          return res.status(404).json({ error: 'Kunne ikke finde forudsigelsen der skulle slettes' });
+        }
         await writeBlob(data);
-        return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true, deleted });
       }
 
       return res.status(400).json({ error: 'Mangler parametre' });

@@ -50,7 +50,7 @@ export default function App() {
   const autosaveTimerRef = useRef(null);
   const autosaveSnapshotRef = useRef('');
 
-  const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird, updateBracketRound,
+  const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird,
       updateFun, updateSimple, resetAll, loadFromObject,
       setS, setFUN, setSIMPLE, myEditCode, setMyEditCode } = local;
 

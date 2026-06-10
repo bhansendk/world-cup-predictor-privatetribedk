@@ -95,10 +95,6 @@ export default function useLocalState() {
     setS(prev => ({ ...prev, third: arr }));
   }, []);
 
-  const updateBracketRound = useCallback((round, id, value) => {
-    setS(prev => ({ ...prev, [round]: { ...(prev[round] || {}), [id]: value } }));
-  }, []);
-
   const updateFun = useCallback((id, value) => {
     setFUN(prev => ({ ...prev, [id]: value }));
     // sync shared fields to SIMPLE
@@ -133,7 +129,7 @@ export default function useLocalState() {
     S, FUN, SIMPLE,
     myName, setMyName,
     myEditCode, setMyEditCode,
-    updateGroup, setThird, updateBracketRound,
+    updateGroup, setThird,
     updateFun, updateSimple,
     resetAll, loadFromObject,
     setS, setFUN, setSIMPLE
