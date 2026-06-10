@@ -1,72 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { calcScore, calcSimpleScore, extractSimpleFromAdvanced } from '../../lib/scoring.js';
-import { FUN_QUESTIONS, GROUPS, QF_PAIRS, R16_PAIRS, R32, SF_PAIRS } from '../../data/wc2026.js';
+import { FUN_QUESTIONS, GROUPS } from '../../data/wc2026.js';
 import BracketTab from './Bracket.jsx';
 
 // Reveal: 1. juni 2026 kl. 21:00 CEST = 19:00 UTC
 const REVEAL_DATE = new Date('2026-06-01T19:00:00Z');
 // Admin kan se alles forudsigelser i komprimeret visning før turneringsstart
 const ADMIN_PREVIEW_UNTIL = new Date('2026-06-11T19:00:00Z');
-const SIMPLE_FIELDS = [
-  { key: 'top1', label: 'Mester' },
-  { key: 'top2', label: 'Runner-up' },
-  { key: 'top3', label: 'Nr. 3' },
-  { key: 'top4', label: 'Nr. 4' },
-  { key: 'topscorer', label: 'Topscorer' },
-  { key: 'golden_ball', label: 'Gyldne Bold' },
-  { key: 'most_yellow', label: 'Flest gule kort - hold' },
-  { key: 'most_goals_team', label: 'Flest mål - hold' }
-];
-const DEFAULT_EDIT_CODE = '123456';
 
 function isFilled(v) {
   if (typeof v === 'string') return v.trim().length > 0;
   return v !== null && v !== undefined;
-}
-
-function getSimpleMissing(simple) {
-  return SIMPLE_FIELDS.filter(f => !isFilled(simple?.[f.key])).map(f => f.label);
-}
-
-function getAdvancedMissing(S, FUN) {
-  const missing = [];
-  const groupMissing = [];
-
-  Object.keys(GROUPS).forEach(k => {
-    const g = S?.g?.[k] || {};
-    const slots = [];
-    if (!isFilled(g.p1)) slots.push('1. plads');
-    if (!isFilled(g.p2)) slots.push('2. plads');
-    if (!isFilled(g.p3)) slots.push('3. plads');
-    if (slots.length) groupMissing.push(`${GROUPS[k].name}: ${slots.join('/')}`);
-  });
-
-  if (groupMissing.length) {
-    missing.push(`Grupper (${groupMissing.length}): ${groupMissing.slice(0, 4).join(', ')}${groupMissing.length > 4 ? ', ...' : ''}`);
-  }
-
-  const thirdCount = Array.isArray(S?.third) ? S.third.length : 0;
-  if (thirdCount < 8) missing.push(`8 bedste 3'ere: mangler ${8 - thirdCount}`);
-
-  const missingR32 = R32.filter(m => !isFilled(S?.r32?.[m.id])).length;
-  const missingR16 = R16_PAIRS.filter((_, i) => !isFilled(S?.r16?.[`r16_${i}`])).length;
-  const missingQF = QF_PAIRS.filter((_, i) => !isFilled(S?.qf?.[`qf_${i}`])).length;
-  const missingSF = SF_PAIRS.filter((_, i) => !isFilled(S?.sf?.[`sf_${i}`])).length;
-  const missingFinal = !isFilled(S?.final?.fin) ? 1 : 0;
-  const missingBronze = !isFilled(S?.bronze?.bronze_w) ? 1 : 0;
-
-  if (missingR32 || missingR16 || missingQF || missingSF || missingFinal || missingBronze) {
-    missing.push(
-      `Bracket: R32(${missingR32}), R16(${missingR16}), KF(${missingQF}), SF(${missingSF}), Finale(${missingFinal}), Bronze(${missingBronze})`
-    );
-  }
-
-  const missingFun = FUN_QUESTIONS.filter(q => !isFilled(FUN?.[q.id])).map(q => q.title);
-  if (missingFun.length) {
-    missing.push(`Sjove tips (${missingFun.length}): ${missingFun.slice(0, 5).join(', ')}${missingFun.length > 5 ? ', ...' : ''}`);
-  }
-
-  return missing;
 }
 
 function useCountdown(target) {
@@ -346,28 +290,13 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
 }
 
 export default function KonkurrenceTab({
-  S,
-  FUN,
-  SIMPLE,
   serverData,
-  onSubmit,
   loading,
-  onReset,
   myName,
-  setMyName,
-  myEditCode,
-  setMyEditCode,
-  onLoadMine,
   adminVerify,
   adminLogout,
   isAdmin
 }) {
-  const [name, setName] = useState(myName || '');
-  const [editCode, setEditCode] = useState(myEditCode || DEFAULT_EDIT_CODE);
-  const [newEditCode, setNewEditCode] = useState('');
-  const [showCodeChange, setShowCodeChange] = useState(false);
-  const [status, setStatus] = useState('');
-  const [mode, setMode] = useState('advanced');
   const [adminPw, setAdminPw] = useState('');
   const [adminStatus, setAdminStatus] = useState('');
   const [leaderboardView, setLeaderboardView] = useState('all');
@@ -378,19 +307,6 @@ export default function KonkurrenceTab({
   const revealed = serverData?.revealed ?? (Date.now() >= REVEAL_DATE.getTime());
   const adminPreviewOpen = isAdmin && Date.now() < ADMIN_PREVIEW_UNTIL.getTime();
   const canSeePredictions = revealed || isAdmin;
-  const registrationClosed = revealed;
-  const simpleMissing = getSimpleMissing(SIMPLE);
-  const advancedMissing = getAdvancedMissing(S, FUN);
-  const modeComplete = mode === 'simple' ? simpleMissing.length === 0 : advancedMissing.length === 0;
-  const canSubmit = !registrationClosed && !loading;
-
-  useEffect(() => {
-    setName(myName || '');
-  }, [myName]);
-
-  useEffect(() => {
-    setEditCode(myEditCode || DEFAULT_EDIT_CODE);
-  }, [myEditCode]);
 
   const handleAdminLogin = async () => {
     if (!adminPw.trim()) {
@@ -409,63 +325,6 @@ export default function KonkurrenceTab({
     adminLogout();
     setAdminPw('');
     setAdminStatus('');
-  };
-
-  const handleLoadMine = async () => {
-    if (!name.trim()) {
-      setStatus('Skriv dit navn!');
-      return;
-    }
-    const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
-    const res = await onLoadMine(name.trim(), currentCode);
-    if (res.ok) {
-      setStatus('✅ Din forudsigelse er hentet.');
-      return;
-    }
-    setStatus('❌ ' + res.error);
-  };
-
-  const handleLoadSaved = async () => {
-    if (!myName) return;
-    const savedCode = myEditCode || DEFAULT_EDIT_CODE;
-    setName(myName);
-    setEditCode(savedCode);
-    const res = await onLoadMine(myName, savedCode);
-    setStatus(res.ok ? '✅ Dit gemte bud er hentet.' : '❌ ' + res.error);
-  };
-
-  const handleSubmit = async () => {
-    if (registrationClosed) { setStatus('⛔ Tilmelding er lukket. VM er startet.'); return; }
-    if (!name.trim()) { setStatus('Skriv dit navn!'); return; }
-    if (!modeComplete && !isAdmin) {
-      setStatus(mode === 'simple'
-        ? `⚠️ Mangler i Hurtig mode: ${simpleMissing.join(', ')}`
-        : `⚠️ Mangler i Fodboldinteresseret mode: ${advancedMissing.join(' | ')}`);
-      return;
-    }
-    const prediction = mode === 'simple'
-      ? SIMPLE
-      : { g: S.g, third: S.third, bracket: { r32: S.r32, r16: S.r16, qf: S.qf, sf: S.sf, final: S.final, bronze: S.bronze }, fun: FUN };
-    const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
-    const res = await onSubmit(name.trim(), mode, prediction, currentCode, isAdmin ? adminPw.trim() : '', newEditCode.trim());
-    if (res.ok) {
-      setMyName(name.trim());
-      if (res.editCode) {
-        setEditCode(res.editCode);
-        setMyEditCode(res.editCode);
-      }
-      setNewEditCode('');
-      setShowCodeChange(false);
-      if (res.codeChanged && res.editCode) {
-        setStatus(`✅ Gemt! Din redigeringskode er nu: ${res.editCode}.`);
-      } else if (res.codeGenerated && res.editCode) {
-        setStatus(`✅ Gemt! Din redigeringskode er: ${res.editCode}. Gem den, hvis du vil rette senere.`);
-      } else {
-        setStatus('✅ Gemt!');
-      }
-    } else {
-      setStatus('❌ ' + res.error);
-    }
   };
 
   const hasResults = AR && Object.keys(AR).length > 0;
@@ -508,7 +367,7 @@ export default function KonkurrenceTab({
   return (
     <div className="tab-content">
       <div className="section-header">
-        <h2>📊 Stilling &amp; Indsend</h2>
+        <h2>📊 Stilling</h2>
       </div>
 
       {/* Countdown / reveal banner */}
@@ -524,79 +383,7 @@ export default function KonkurrenceTab({
       )}
 
       <div className="section-card">
-        <h3>📤 Send din forudsigelse</h3>
-        <div className="submit-panel">
-          <div className="submit-panel-grid">
-            <div className="submit-panel-block">
-              <div className="submit-panel-label">Bruger</div>
-              <input
-                type="text"
-                className="name-input submit-input"
-                placeholder="Dit navn"
-                value={name}
-                onChange={e => setName(e.target.value)}
-              />
-              <select value={mode} onChange={e => setMode(e.target.value)} className="mode-select submit-input">
-                <option value="advanced">⭐ Fodboldinteresseret</option>
-                <option value="simple">⚡ Hurtig</option>
-              </select>
-            </div>
-
-            <div className="submit-panel-block">
-              <div className="submit-panel-label">Login og kode</div>
-              <input
-                type="text"
-                className="name-input submit-input"
-                placeholder="Redigeringskode"
-                value={editCode}
-                onChange={e => setEditCode(e.target.value.toUpperCase())}
-              />
-              <div className="smart-login-row">
-                <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>Hent mit bud</button>
-                {myName && (
-                  <button className="btn-ghost btn-sm" onClick={handleLoadSaved} disabled={loading}>Brug gemt login</button>
-                )}
-                <button className="btn-ghost btn-sm" onClick={() => setShowCodeChange(v => !v)}>
-                  {showCodeChange ? 'Luk kodevalg' : 'Skift kode'}
-                </button>
-              </div>
-              {showCodeChange && (
-                <input
-                  type="text"
-                  className="name-input submit-input"
-                  placeholder="Ny redigeringskode"
-                  value={newEditCode}
-                  onChange={e => setNewEditCode(e.target.value.toUpperCase())}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="submit-action-row">
-            <button className="btn-primary" onClick={handleSubmit} disabled={!canSubmit}>
-              {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send ✈️'}
-            </button>
-            <button className="btn-accent btn-sm" onClick={handleLoadMine} disabled={loading}>🔐 Log ind og hent</button>
-            <button className="btn-ghost btn-sm" onClick={onReset}>🗑️ Nulstil</button>
-          </div>
-
-          <div className="submit-meta-list">
-            {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 1. juni 2026 kl. 21:00 dansk tid.</p>}
-            <p className="info-txt">Startkode er 123456 for alle. NaAr du er logget ind, autosaves dine aendringer automatisk. Efter 11-06-2026 kl. 21 er aendringer lukket (undtagen admin).</p>
-            {!registrationClosed && !modeComplete && (
-              <p className="info-txt">
-                {mode === 'simple'
-                  ? `Manglende felter: ${simpleMissing.join(', ')}.`
-                  : `Manglende felter: ${advancedMissing.join(' | ')}.`}
-              </p>
-            )}
-            {!registrationClosed && isAdmin && !modeComplete && (
-              <p className="info-txt">🔓 Admin kan indsende selvom ikke alle felter er udfyldt.</p>
-            )}
-          </div>
-
-          {status && <p className={`status-msg${status.startsWith('❌') ? ' error' : ''}`}>{status}</p>}
-        </div>
+        <p className="info-txt">Indsendelse og redigering af eget bud foregår i mode-fanerne. Brug "Skift bruger" i toppen hvis du vil logge ind som en anden.</p>
       </div>
 
       <div className="section-card">
@@ -618,6 +405,9 @@ export default function KonkurrenceTab({
         {!isAdmin && <p className="info-txt">Log ind som admin for at se alles forudsigelser før reveal.</p>}
         {isAdmin && adminPreviewOpen && (
           <p className="info-txt">✅ Som admin ser du den komprimerede visning af alles forudsigelser før 11. juni kl. 21:00.</p>
+        )}
+        {!isAdmin && myName && (
+          <p className="info-txt">Logget ind som: {myName}</p>
         )}
         {adminStatus && <p className="status-msg">{adminStatus}</p>}
       </div>

@@ -27,10 +27,9 @@ export default function AdvancedMode(props) {
     }
   });
   const { S, FUN, SIMPLE, updateGroup, setThird, onBracketPick, updateFun, updateSimple,
-      serverData, onSubmit, adminUpdate, adminVerify, adminDelete, adminClearAll, loading,
+      serverData, adminUpdate, adminVerify, adminDelete, adminClearAll, loading,
         fetchData, onReset, onResetGroups, onResetThird, onResetBracket, onResetFun,
-        setS, setFUN, setSIMPLE, myName, setMyName, myEditCode, setMyEditCode,
-        onLoadMine, isAdmin, adminLogout, adminPassword } = props;
+        setS, setFUN, setSIMPLE, myName, isAdmin, adminLogout, adminPassword } = props;
 
   const randomPick = (arr) => arr[Math.floor(Math.random() * arr.length)] || null;
 
@@ -156,12 +155,7 @@ export default function AdvancedMode(props) {
       )}
       {tab === 'ranking' && (
         <KonkurrenceTab
-          S={S} FUN={FUN} SIMPLE={SIMPLE}
-          serverData={serverData} onSubmit={onSubmit} loading={loading}
-          onReset={onReset} myName={myName} setMyName={setMyName}
-          myEditCode={myEditCode}
-          setMyEditCode={setMyEditCode}
-          onLoadMine={onLoadMine}
+          serverData={serverData} loading={loading} myName={myName}
           adminVerify={adminVerify}
           adminLogout={adminLogout}
           isAdmin={isAdmin}

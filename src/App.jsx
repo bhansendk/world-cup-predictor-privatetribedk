@@ -47,6 +47,8 @@ export default function App() {
   const [authName, setAuthName] = useState('');
   const [authCode, setAuthCode] = useState(DEFAULT_EDIT_CODE);
   const [authStatus, setAuthStatus] = useState('');
+  const [autosaveState, setAutosaveState] = useState('idle');
+  const [autosaveLabel, setAutosaveLabel] = useState('');
   const autosaveTimerRef = useRef(null);
   const autosaveSnapshotRef = useRef('');
 
@@ -273,6 +275,8 @@ export default function App() {
     setAuthStatus('');
     setAuthName('');
     setAuthCode(DEFAULT_EDIT_CODE);
+    setAutosaveState('idle');
+    setAutosaveLabel('');
   }, [setMode]);
 
   useEffect(() => {
@@ -299,6 +303,8 @@ export default function App() {
     if (snapshot === autosaveSnapshotRef.current) return;
 
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    setAutosaveState('saving');
+    setAutosaveLabel('Gemmer automatisk...');
     autosaveTimerRef.current = setTimeout(async () => {
       const res = await server.autosavePrediction(
         myName.trim(),
@@ -309,9 +315,15 @@ export default function App() {
       );
       if (res.ok) {
         autosaveSnapshotRef.current = snapshot;
+        const at = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setAutosaveState('saved');
+        setAutosaveLabel(`Automatisk gemt ${at}`);
         if (res.editCode && res.editCode !== myEditCode) {
           setMyEditCode(res.editCode);
         }
+      } else {
+        setAutosaveState('error');
+        setAutosaveLabel('Fejl ved autosave');
       }
     }, 1200);
 
@@ -331,6 +343,12 @@ export default function App() {
     server.autosavePrediction,
     setMyEditCode
   ]);
+
+  useEffect(() => {
+    if (isAuthenticated && mode && !server.isAdmin) return;
+    setAutosaveState('idle');
+    setAutosaveLabel('');
+  }, [isAuthenticated, mode, server.isAdmin]);
 
   if (!isAuthenticated) {
     return (
@@ -392,6 +410,12 @@ export default function App() {
       <header className="app-header">
         <span className="app-logo">⚽</span>
         <h1>VM 2026 – PrivatTribeDK</h1>
+        {myName && <div className="app-user-indicator">Logget ind som: {myName}</div>}
+        {autosaveLabel && (
+          <div className={`app-autosave-indicator is-${autosaveState}`}>
+            {autosaveLabel}
+          </div>
+        )}
         {countdownStr && (
           <div className="app-countdown">
             <span className="app-countdown-label">⏳ VM starter om:</span>
@@ -451,7 +475,6 @@ export default function App() {
           updateFun={updateFun}
           updateSimple={handleSimpleChange}
           serverData={server.serverData}
-          onSubmit={server.submitPrediction}
           adminUpdate={server.adminUpdateResults}
           adminVerify={server.adminVerifyPassword}
           adminLogout={server.adminLogout}
@@ -470,10 +493,6 @@ export default function App() {
           setFUN={setFUN}
           setSIMPLE={setSIMPLE}
           myName={myName}
-          setMyName={setMyName}
-          myEditCode={myEditCode}
-          setMyEditCode={setMyEditCode}
-          onLoadMine={loadMyPrediction}
         />
       )}
     </div>
