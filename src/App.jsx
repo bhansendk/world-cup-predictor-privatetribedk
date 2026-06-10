@@ -24,11 +24,17 @@ import SimpleMode from './components/SimpleMode.jsx';
 import AdvancedMode from './components/AdvancedMode.jsx';
 import WinnerBanner from './components/WinnerBanner.jsx';
 import { extractSimpleFromAdvanced } from './lib/scoring.js';
+import { FUN_QUESTIONS, GROUPS, QF_PAIRS, R16_PAIRS, R32, SF_PAIRS } from './data/wc2026.js';
 
 const GROUP_KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 const SIMPLE_TOP4_KEYS = ['top1', 'top2', 'top3', 'top4'];
 const SHARED_FUN_KEYS = ['topscorer', 'golden_ball', 'most_yellow', 'most_goals_team'];
 const DEFAULT_EDIT_CODE = '123456';
+
+function isFilled(v) {
+  if (typeof v === 'string') return v.trim().length > 0;
+  return v !== null && v !== undefined;
+}
 
 export default function App() {
   const local = useLocalState();
@@ -47,6 +53,35 @@ export default function App() {
   const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird, updateBracketRound,
       updateFun, updateSimple, resetAll, loadFromObject,
       setS, setFUN, setSIMPLE, myEditCode, setMyEditCode } = local;
+
+  const simpleComplete = [...SIMPLE_TOP4_KEYS, ...SHARED_FUN_KEYS].every((key) => isFilled(SIMPLE?.[key]));
+  const advancedComplete =
+    Object.keys(GROUPS).every((k) => {
+      const g = S?.g?.[k] || {};
+      return isFilled(g.p1) && isFilled(g.p2) && isFilled(g.p3);
+    }) &&
+    (Array.isArray(S?.third) ? S.third.length === 8 : false) &&
+    R32.every((m) => isFilled(S?.r32?.[m.id])) &&
+    R16_PAIRS.every((_, i) => isFilled(S?.r16?.[`r16_${i}`])) &&
+    QF_PAIRS.every((_, i) => isFilled(S?.qf?.[`qf_${i}`])) &&
+    SF_PAIRS.every((_, i) => isFilled(S?.sf?.[`sf_${i}`])) &&
+    isFilled(S?.final?.fin) &&
+    isFilled(S?.bronze?.bronze_w) &&
+    FUN_QUESTIONS.every((q) => isFilled(FUN?.[q.id]));
+
+  const shouldWarnOnClose = !!mode && (mode === 'simple' ? !simpleComplete : !advancedComplete);
+
+  useEffect(() => {
+    if (!shouldWarnOnClose) return;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [shouldWarnOnClose]);
 
   useEffect(() => {
     setAuthName(myName || '');
@@ -241,7 +276,7 @@ export default function App() {
   }, [setMode]);
 
   useEffect(() => {
-    if (!isAuthenticated || !mode || !myName?.trim()) return;
+    if (!isAuthenticated || server.isAdmin || !mode || !myName?.trim()) return;
 
     const code = (myEditCode || '123456').trim().toUpperCase();
     const prediction = mode === 'simple'
