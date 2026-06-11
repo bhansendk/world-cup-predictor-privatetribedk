@@ -18,6 +18,7 @@ const EDIT_CODE_LENGTH = 8;
 const DEFAULT_INITIAL_EDIT_CODE = '123456';
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
 const RATE_LIMIT_STORE = new Map();
+let CACHED_BLOB_URL = null;
 
 // VM 2026 kickoff: 11. juni 2026 kl. 21:00 CEST (UTC+2) = 19:00 UTC
 const REVEAL_DATE = new Date('2026-06-11T19:00:00Z');
@@ -154,14 +155,26 @@ function validatePrediction(mode, prediction) {
       ? null
       : 'Du skal udfylde alle felter i Fodboldinteresseret mode før indsendelse.';
   }
-  return 'Ugyldig mode';
+        const prefixes = ['', 'wc2026-', BLOB_NAME.replace(/\.json$/i, '')];
 }
 
 async function readBlob() {
   try {
+    if (CACHED_BLOB_URL) {
+      try {
+        const cachedRes = await fetch(CACHED_BLOB_URL + `?t=${Date.now()}`, { cache: 'no-store' });
+        if (cachedRes.ok) {
+          return await cachedRes.json();
+        }
+      } catch {
+        // Fall back to list lookup below.
+      }
+    }
+
     const { blobs } = await list({ prefix: BLOB_NAME });
     if (!blobs.length) return { colleagues: [], results: {} };
-    const res = await fetch(blobs[0].url + `?t=${Date.now()}`, { cache: 'no-store' });
+    CACHED_BLOB_URL = blobs[0].url;
+    const res = await fetch(CACHED_BLOB_URL + `?t=${Date.now()}`, { cache: 'no-store' });
     return await res.json();
   } catch { return { colleagues: [], results: {} }; }
 }
@@ -177,18 +190,24 @@ async function readBlobByUrl(url) {
 }
 
 async function writeBlob(data) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+            participantsCount: participants.length,
+            predictionsCount: predictions.length,
+            entriesCount: entries.length,
+            recordsCount: records.length,
     throw new Error('BLOB_READ_WRITE_TOKEN mangler i Vercel Environment Variables');
   }
   if (!['public', 'private'].includes(BLOB_ACCESS)) {
     throw new Error('BLOB_ACCESS skal vaere enten public eller private');
   }
-  await put(BLOB_NAME, JSON.stringify(data), {
+  const blob = await put(BLOB_NAME, JSON.stringify(data), {
     access: BLOB_ACCESS,
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json'
   });
+  if (blob?.url) {
+    CACHED_BLOB_URL = blob.url;
+  }
 }
 
 async function saveWithRetry({ buildEntry, verifyEntry, maxAttempts = 4 }) {
@@ -453,12 +472,21 @@ export default async function handler(req, res) {
         for (const blob of uniqueBlobs.values()) {
           const json = await readBlobByUrl(blob.url);
           const colleagues = Array.isArray(json?.colleagues) ? json.colleagues : [];
+          const participants = Array.isArray(json?.participants) ? json.participants : [];
+          const predictions = Array.isArray(json?.predictions) ? json.predictions : [];
+          const entries = Array.isArray(json?.entries) ? json.entries : [];
+          const records = Array.isArray(json?.records) ? json.records : [];
           const sampleNames = colleagues.slice(0, 20).map((c) => c?.name).filter(Boolean);
           details.push({
             pathname: blob.pathname,
             uploadedAt: blob.uploadedAt,
             size: blob.size,
             colleaguesCount: colleagues.length,
+            participantsCount: participants.length,
+            predictionsCount: predictions.length,
+            entriesCount: entries.length,
+            recordsCount: records.length,
+            topLevelKeys: json && typeof json === 'object' ? Object.keys(json).slice(0, 30) : [],
             sampleNames
           });
         }
