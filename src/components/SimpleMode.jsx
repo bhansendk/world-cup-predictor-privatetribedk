@@ -207,7 +207,7 @@ export default function SimpleMode({
           </div>
 
           <div className="submit-meta-list">
-            <p className="info-txt">Ved foerste gem gives du automatisk en unik redigeringskode. NaAr du er logget ind, autosaves dine aendringer automatisk. Efter 11-06-2026 kl. 21 er aendringer lukket (undtagen admin).</p>
+            <p className="info-txt">Ved foerste gem gives du automatisk en unik redigeringskode. Gem manuelt med knappen "Gem" naAr du laver aendringer. Efter 11-06-2026 kl. 21 er aendringer lukket (undtagen admin).</p>
             {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
             {!registrationClosed && !isComplete && <p className="info-txt">Manglende felter: {missingFields.join(', ')}.</p>}
           </div>
