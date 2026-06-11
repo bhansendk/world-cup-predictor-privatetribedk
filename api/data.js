@@ -166,6 +166,16 @@ async function readBlob() {
   } catch { return { colleagues: [], results: {} }; }
 }
 
+async function readBlobByUrl(url) {
+  try {
+    const res = await fetch(url + `?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 async function writeBlob(data) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error('BLOB_READ_WRITE_TOKEN mangler i Vercel Environment Variables');
@@ -423,6 +433,38 @@ export default async function handler(req, res) {
         else data.colleagues.push(entry);
         await writeBlob(data);
         return res.status(200).json({ ok: true });
+      }
+
+      if (action === 'scanBlobs') {
+        if (!ADMIN_PASS) return res.status(503).json({ error: 'ADMIN_PASSWORD er ikke konfigureret' });
+        const { password } = body;
+        if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });
+
+        const prefixes = ['wc2026-', BLOB_NAME.replace(/\.json$/i, '')];
+        const uniqueBlobs = new Map();
+        for (const prefix of prefixes) {
+          const { blobs } = await list({ prefix });
+          for (const blob of blobs || []) {
+            uniqueBlobs.set(blob.pathname || blob.url, blob);
+          }
+        }
+
+        const details = [];
+        for (const blob of uniqueBlobs.values()) {
+          const json = await readBlobByUrl(blob.url);
+          const colleagues = Array.isArray(json?.colleagues) ? json.colleagues : [];
+          const sampleNames = colleagues.slice(0, 20).map((c) => c?.name).filter(Boolean);
+          details.push({
+            pathname: blob.pathname,
+            uploadedAt: blob.uploadedAt,
+            size: blob.size,
+            colleaguesCount: colleagues.length,
+            sampleNames
+          });
+        }
+
+        details.sort((a, b) => (b.colleaguesCount || 0) - (a.colleaguesCount || 0));
+        return res.status(200).json({ ok: true, currentBlob: BLOB_NAME, blobs: details });
       }
 
       if (action === 'submit') {
