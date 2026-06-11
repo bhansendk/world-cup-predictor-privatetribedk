@@ -79,9 +79,9 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState('');
   const [authWarn, setAuthWarn] = useState('');
   const [pendingLoginArgs, setPendingLoginArgs] = useState(null);
-  const [autosaveState, setAutosaveState] = useState('idle');
-  const [autosaveLabel, setAutosaveLabel] = useState('');
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const saveStatusTimerRef = useRef(null);
   const autosaveSnapshotRef = useRef('');
 
   const { mode, setMode, S, FUN, SIMPLE, myName, setMyName, updateGroup, setThird,
@@ -314,8 +314,7 @@ export default function App() {
       isAdmin: false
     });
     setHasUnsavedChanges(false);
-    setAutosaveState('saved');
-    setAutosaveLabel('Alt er gemt');
+    setSaveStatus('saved');
     return { ok: true, mode: entry.mode };
   }, [loadFromObject, server, setMyName, setMyEditCode]);
 
@@ -421,16 +420,16 @@ export default function App() {
     setAuthCode(DEFAULT_EDIT_CODE);
     setHasUnsavedChanges(false);
     autosaveSnapshotRef.current = '';
-    setAutosaveState('idle');
-    setAutosaveLabel('');
+    setSaveStatus('idle');
+    clearTimeout(saveStatusTimerRef.current);
   }, [setMode]);
 
   const handleManualSave = useCallback(async () => {
     if (!myName?.trim() || !mode) return;
     const code = (myEditCode || '123456').trim().toUpperCase();
     const prediction = buildCurrentPrediction();
-    setAutosaveState('saving');
-    setAutosaveLabel('Gemmer...');
+    setSaveStatus('saving');
+    clearTimeout(saveStatusTimerRef.current);
     const res = await server.autosavePrediction(
       myName.trim(),
       mode,
@@ -442,16 +441,15 @@ export default function App() {
       const resolvedCode = res.editCode || code;
       const snapshot = JSON.stringify({ name: myName.trim(), mode, code: resolvedCode, prediction, isAdmin: server.isAdmin });
       autosaveSnapshotRef.current = snapshot;
-      const at = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setHasUnsavedChanges(false);
-      setAutosaveState('saved');
-      setAutosaveLabel(`Gemt ${at}`);
+      setSaveStatus('saved');
+      saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 4000);
       if (res.editCode && res.editCode !== myEditCode) {
         setMyEditCode(res.editCode);
       }
     } else {
-      setAutosaveState('error');
-      setAutosaveLabel('Fejl ved gem');
+      setSaveStatus('error');
+      saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 5000);
     }
   }, [myName, mode, myEditCode, buildCurrentPrediction, server, setMyEditCode]);
 
@@ -460,10 +458,7 @@ export default function App() {
     const currentSnapshot = buildSnapshot();
     const dirty = !!currentSnapshot && currentSnapshot !== autosaveSnapshotRef.current;
     setHasUnsavedChanges(dirty);
-    if (dirty) {
-      setAutosaveState('idle');
-      setAutosaveLabel('⚠ Ikke gemt');
-    }
+    if (dirty) setSaveStatus('idle');
   }, [
     isAuthenticated,
     mode,
@@ -479,8 +474,7 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated && mode && !server.isAdmin) return;
     setHasUnsavedChanges(false);
-    setAutosaveState('idle');
-    setAutosaveLabel('');
+    setSaveStatus('idle');
   }, [isAuthenticated, mode, server.isAdmin]);
 
   if (!isAuthenticated) {
@@ -556,11 +550,6 @@ export default function App() {
         <span className="app-logo">⚽</span>
         <h1>VM 2026 – PrivatTribeDK</h1>
         {myName && <div className="app-user-indicator">Logget ind som: {myName}</div>}
-        {autosaveLabel && (
-          <div className={`app-autosave-indicator is-${autosaveState}`}>
-            {autosaveLabel}
-          </div>
-        )}
         {countdownStr && (
           <div className="app-countdown">
             <span className="app-countdown-label">⏳ VM starter om:</span>
@@ -569,11 +558,20 @@ export default function App() {
         )}
         {isAuthenticated && mode && !server.isAdmin && (
           <button
-            className="btn-primary btn-sm"
+            className={`btn-sm ${
+              saveStatus === 'saving' ? 'btn-ghost' :
+              saveStatus === 'saved' ? 'btn-ghost' :
+              saveStatus === 'error' ? 'btn-danger' :
+              hasUnsavedChanges ? 'btn-primary' : 'btn-ghost'
+            }`}
             onClick={handleManualSave}
-            disabled={server.loading || autosaveState === 'saving' || !hasUnsavedChanges}
+            disabled={server.loading || saveStatus === 'saving' || (!hasUnsavedChanges && saveStatus !== 'error')}
+            title={hasUnsavedChanges ? 'Du har ugemte ændringer' : ''}
           >
-            💾 Gem
+            {saveStatus === 'saving' ? 'Gemmer…' :
+             saveStatus === 'saved' ? '✓ Gemt' :
+             saveStatus === 'error' ? '⚠ Fejl ved gem' :
+             hasUnsavedChanges ? '💾 Gem ●' : '💾 Gem'}
           </button>
         )}
         <button className="btn-ghost btn-sm" onClick={handleSwitchMode}>

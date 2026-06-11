@@ -208,7 +208,6 @@ export default function useServerData() {
         const target = normalizeName(name);
         return { ...prev, colleagues: current.filter(c => normalizeName(c.name) !== target) };
       });
-      await fetchData();
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -227,7 +226,6 @@ export default function useServerData() {
         if (!prev) return prev;
         return { ...prev, colleagues: [] };
       });
-      await fetchData();
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e.message };

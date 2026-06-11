@@ -125,11 +125,6 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
   const [importName, setImportName] = useState('');
   const [importText, setImportText] = useState('');
   const [resultState, setResultState] = useState(() => ({ ...emptyResults(), ...(serverData?.results || {}) }));
-  const [localColleagues, setLocalColleagues] = useState(colleagues || []);
-
-  useEffect(() => {
-    setLocalColleagues(colleagues || []);
-  }, [colleagues]);
 
   useEffect(() => {
     setResultState({ ...emptyResults(), ...(serverData?.results || {}) });
@@ -174,10 +169,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
     }
     if (!confirm('Slet alle deltagere?')) return;
     const res = await adminClearAll(activePw);
-    if (res.ok) {
-      setLocalColleagues([]);
-      setStatus('✅ Alle slettet');
-    }
+    if (res.ok) setStatus('✅ Alle slettet');
     else setStatus('❌ ' + res.error);
   };
 
@@ -187,10 +179,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
       return;
     }
     const res = await adminDelete(name, activePw);
-    if (res.ok) {
-      setLocalColleagues(prev => prev.filter(c => c.name !== name));
-      setStatus(`✅ ${name} slettet`);
-    }
+    if (res.ok) setStatus(`✅ ${name} slettet`);
     else setStatus('❌ ' + res.error);
   };
 
@@ -292,7 +281,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
       <div className="section-card">
         <h3>👥 Deltagere</h3>
         <div className="participants-list">
-          {localColleagues.map(c => (
+          {colleagues.map(c => (
             <div key={c.name} className="participant-chip">
               {c.name} <span className="chip-mode">{c.mode === 'simple' ? '⚡' : '⭐'}</span>
               <button className="btn-danger-sm" onClick={() => handleDeleteOne(c.name)}>✕</button>
