@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 const ADMIN_STORAGE_KEY = 'vm2026_admin_password';
+const POLL_INTERVAL_MS = 180000;
 
 async function parseApiResponse(res) {
   const raw = await res.text();
@@ -71,9 +72,18 @@ export default function useServerData() {
   }, [adminPassword]);
 
   useEffect(() => {
+    const fetchIfVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      fetchData();
+    };
+
     fetchData();
-    pollRef.current = setInterval(fetchData, 30000);
-    return () => clearInterval(pollRef.current);
+    pollRef.current = setInterval(fetchIfVisible, POLL_INTERVAL_MS);
+    document.addEventListener('visibilitychange', fetchIfVisible);
+    return () => {
+      clearInterval(pollRef.current);
+      document.removeEventListener('visibilitychange', fetchIfVisible);
+    };
   }, [fetchData]);
 
   const submitPrediction = useCallback(async (name, mode, prediction, editCode = '', adminPassword = '', newEditCode = '') => {
