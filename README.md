@@ -55,6 +55,7 @@ Gå til **Project Settings → Environment Variables** og tilføj:
 |---|---|---|
 | `BLOB_READ_WRITE_TOKEN` | `vercel_blob_rw_...` | Token til Vercel Blob storage |
 | `ADMIN_PASSWORD` | `<din-hemlige-kode>` | Adgangskode til admin-panel |
+| `ALLOWED_ORIGINS` | `https://din-app.vercel.app` | Kommasepareret liste af tilladte origins til CORS |
 | `COMPETITION_SLUG` | `privattribedk` | Unik nøgle for konkurrence-data (adskiller deltagere/resultater) |
 | `BLOB_DATA_FILE` | `wc2026-privattribedk.json` | Valgfrit specifikt blob-filnavn (overstyrer slug) |
 
@@ -84,7 +85,8 @@ Tip: Du kan køre flere konkurrencer med samme `BLOB_READ_WRITE_TOKEN`, så læn
 1. Del linket til siden (f.eks. `https://vm2026-privattribedk.vercel.app`)
 2. Vælg mode, udfyld forudsigelsen
 3. Gå til **📊 Stilling** og indsend med dit navn
-4. Se stillingen opdatere automatisk!
+4. Ved første gem får du automatisk en unik redigeringskode - gem den, hvis du vil rette senere
+5. Se stillingen opdatere automatisk!
 
 ---
 

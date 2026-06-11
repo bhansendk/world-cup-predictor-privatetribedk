@@ -282,13 +282,7 @@ export default function App() {
     }
 
     if (res.error?.includes('Ingen forudsigelse fundet')) {
-      setMyName(name);
-      setMyEditCode(code);
-      resetAll();
-      setMode(null);
-      setShowModeIntro(false);
-      setIsAuthenticated(true);
-      setAuthStatus('✅ Ny bruger oprettet. Vælg mode og lav dit bud.');
+      setAuthStatus('❌ Ingen forudsigelse fundet for dette navn + kode. Brug "Opret ny bruger" hvis du er ny.');
       setAuthWarn('');
       setPendingLoginArgs(null);
       return;
@@ -297,7 +291,38 @@ export default function App() {
     setAuthStatus('❌ ' + res.error);
     setAuthWarn('');
     setPendingLoginArgs(null);
-  }, [loadMyPrediction, resetAll, setMode, setMyEditCode, setMyName]);
+  }, [loadMyPrediction]);
+
+  const handleCreateNewUser = useCallback(() => {
+    const name = authName.trim();
+    const code = (authCode || DEFAULT_EDIT_CODE).trim().toUpperCase();
+    if (!name) {
+      setAuthStatus('❌ Skriv dit navn');
+      return;
+    }
+
+    const existingNames = (server.serverData?.colleagues || []).map(c => c.name);
+    const exactExists = existingNames.some((n) => normalizeName(n) === normalizeName(name));
+    if (exactExists) {
+      setAuthStatus('❌ Brugeren findes allerede. Brug Log ind med korrekt kode.');
+      return;
+    }
+    const similar = findSimilarName(name, existingNames);
+    if (similar) {
+      setAuthStatus(`❌ Navnet ligner eksisterende bruger "${similar}". Brug et unikt navn.`);
+      return;
+    }
+
+    setMyName(name);
+    setMyEditCode(code);
+    resetAll();
+    setMode(null);
+    setShowModeIntro(false);
+    setIsAuthenticated(true);
+    setAuthWarn('');
+    setPendingLoginArgs(null);
+    setAuthStatus('✅ Ny bruger oprettet lokalt. Vælg mode og lav dit bud.');
+  }, [authName, authCode, resetAll, server.serverData, setMode, setMyEditCode, setMyName]);
 
   const handleInitialLogin = useCallback(async () => {
     const name = authName.trim();
@@ -333,36 +358,6 @@ export default function App() {
     setAuthWarn('');
     await doLogin(pendingLoginArgs.name, pendingLoginArgs.code);
   }, [pendingLoginArgs, doLogin]);
-
-  // LEGACY: kept for reference — split into doLogin + handleInitialLogin above
-  const _handleInitialLoginOld = useCallback(async () => {
-    const name = authName.trim();
-    const code = (authCode || DEFAULT_EDIT_CODE).trim().toUpperCase();
-    if (!name) {
-      setAuthStatus('❌ Skriv dit navn');
-      return;
-    }
-
-    const res = await loadMyPrediction(name, code);
-    if (res.ok) {
-      setAuthStatus('✅ Logget ind og tidligere bud hentet');
-      return;
-    }
-
-    if (res.error?.includes('Ingen forudsigelse fundet')) {
-      setMyName(name);
-      setMyEditCode(code);
-      resetAll();
-      setMode(null);
-      setShowModeIntro(false);
-      setIsAuthenticated(true);
-      setAuthStatus('✅ Ny bruger oprettet. Vælg mode og lav dit bud.');
-      return;
-    }
-
-    setAuthStatus('❌ ' + res.error);
-  }, [authName, authCode, loadMyPrediction, resetAll, setMode, setMyEditCode, setMyName]);
-  // END LEGACY
 
   const handleSwitchUser = useCallback(() => {
     setIsAuthenticated(false);
@@ -496,7 +491,7 @@ export default function App() {
       <div className="app-root login-gate-wrap">
         <div className="section-card login-gate-card">
           <h2>🔐 Log ind for at starte</h2>
-          <p className="info-txt">Indtast navn og kode. Hvis du allerede har givet et bud, er din kode 123456 (medmindre du selv har ændret den).</p>
+          <p className="info-txt">Indtast navn og kode for at hente dit eksisterende bud. Nye brugere skal vælge "Opret ny bruger".</p>
           <div className="submit-panel">
             <div className="submit-panel-grid single-column-submit">
               <div className="submit-panel-block">
@@ -519,9 +514,10 @@ export default function App() {
             </div>
             <div className="submit-action-row">
               <button className="btn-primary" onClick={handleInitialLogin} disabled={server.loading}>Log ind</button>
+              <button className="btn-ghost" onClick={handleCreateNewUser} disabled={server.loading}>Opret ny bruger</button>
             </div>
             <div className="submit-meta-list">
-              <p className="info-txt">Findes dit bud ikke endnu, bliver du oprettet som ny bruger og kan lave et nyt bud.</p>
+              <p className="info-txt">Login henter kun eksisterende bud. Hvis du er ny, brug "Opret ny bruger".</p>
             </div>
             {authWarn && (
               <div className="status-msg warn">
