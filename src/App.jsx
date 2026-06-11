@@ -27,6 +27,36 @@ import { extractSimpleFromAdvanced } from './lib/scoring.js';
 import { FUN_QUESTIONS, GROUPS, QF_PAIRS, R16_PAIRS, R32, SF_PAIRS } from './data/wc2026.js';
 
 const GROUP_KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function normalizeName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function findSimilarName(inputName, existingNames) {
+  const normalized = normalizeName(inputName);
+  for (const existing of existingNames) {
+    const normExisting = normalizeName(existing);
+    if (normExisting === normalized) return null; // exact match, no warning
+    const maxLen = Math.max(normalized.length, normExisting.length);
+    const threshold = maxLen <= 5 ? 1 : maxLen <= 10 ? 2 : 3;
+    if (levenshtein(normalized, normExisting) <= threshold) return existing;
+  }
+  return null;
+}
 const SIMPLE_TOP4_KEYS = ['top1', 'top2', 'top3', 'top4'];
 const SHARED_FUN_KEYS = ['topscorer', 'golden_ball', 'most_yellow', 'most_goals_team'];
 const DEFAULT_EDIT_CODE = '123456';
@@ -47,6 +77,8 @@ export default function App() {
   const [authName, setAuthName] = useState('');
   const [authCode, setAuthCode] = useState(DEFAULT_EDIT_CODE);
   const [authStatus, setAuthStatus] = useState('');
+  const [authWarn, setAuthWarn] = useState('');
+  const [pendingLoginArgs, setPendingLoginArgs] = useState(null);
   const [autosaveState, setAutosaveState] = useState('idle');
   const [autosaveLabel, setAutosaveLabel] = useState('');
   const autosaveTimerRef = useRef(null);
@@ -240,7 +272,70 @@ export default function App() {
     return { ok: true, mode: entry.mode };
   }, [loadFromObject, server, setMyName, setMyEditCode]);
 
+  const doLogin = useCallback(async (name, code) => {
+    const res = await loadMyPrediction(name, code);
+    if (res.ok) {
+      setAuthStatus('✅ Logget ind og tidligere bud hentet');
+      setAuthWarn('');
+      setPendingLoginArgs(null);
+      return;
+    }
+
+    if (res.error?.includes('Ingen forudsigelse fundet')) {
+      setMyName(name);
+      setMyEditCode(code);
+      resetAll();
+      setMode(null);
+      setShowModeIntro(false);
+      setIsAuthenticated(true);
+      setAuthStatus('✅ Ny bruger oprettet. Vælg mode og lav dit bud.');
+      setAuthWarn('');
+      setPendingLoginArgs(null);
+      return;
+    }
+
+    setAuthStatus('❌ ' + res.error);
+    setAuthWarn('');
+    setPendingLoginArgs(null);
+  }, [loadMyPrediction, resetAll, setMode, setMyEditCode, setMyName]);
+
   const handleInitialLogin = useCallback(async () => {
+    const name = authName.trim();
+    const code = (authCode || DEFAULT_EDIT_CODE).trim().toUpperCase();
+    if (!name) {
+      setAuthStatus('❌ Skriv dit navn');
+      return;
+    }
+
+    // Warn if name looks like the default edit code
+    if (normalizeName(name) === '123456') {
+      setAuthStatus('');
+      setAuthWarn('⚠️ "123456" ser ud som en kode, ikke et navn. Er du sikker på, at du har skrevet dit rigtige navn?');
+      setPendingLoginArgs({ name, code });
+      return;
+    }
+
+    // Warn if name is similar to an existing name
+    const existingNames = (server.serverData?.colleagues || []).map(c => c.name);
+    const similar = findSimilarName(name, existingNames);
+    if (similar) {
+      setAuthStatus('');
+      setAuthWarn(`⚠️ Der findes allerede en bruger ved navn "${similar}". Mente du det? Klik "Fortsæt alligevel" for at logge ind med "${name}", eller ret dit navn.`);
+      setPendingLoginArgs({ name, code });
+      return;
+    }
+
+    await doLogin(name, code);
+  }, [authName, authCode, server.serverData, doLogin]);
+
+  const handleForceLogin = useCallback(async () => {
+    if (!pendingLoginArgs) return;
+    setAuthWarn('');
+    await doLogin(pendingLoginArgs.name, pendingLoginArgs.code);
+  }, [pendingLoginArgs, doLogin]);
+
+  // LEGACY: kept for reference — split into doLogin + handleInitialLogin above
+  const _handleInitialLoginOld = useCallback(async () => {
     const name = authName.trim();
     const code = (authCode || DEFAULT_EDIT_CODE).trim().toUpperCase();
     if (!name) {
@@ -267,17 +362,63 @@ export default function App() {
 
     setAuthStatus('❌ ' + res.error);
   }, [authName, authCode, loadMyPrediction, resetAll, setMode, setMyEditCode, setMyName]);
+  // END LEGACY
 
   const handleSwitchUser = useCallback(() => {
     setIsAuthenticated(false);
     setShowModeIntro(false);
     setMode(null);
     setAuthStatus('');
+    setAuthWarn('');
+    setPendingLoginArgs(null);
     setAuthName('');
     setAuthCode(DEFAULT_EDIT_CODE);
     setAutosaveState('idle');
     setAutosaveLabel('');
   }, [setMode]);
+
+  const handleManualSave = useCallback(async () => {
+    if (!myName?.trim() || !mode) return;
+    const code = (myEditCode || '123456').trim().toUpperCase();
+    const prediction = mode === 'simple'
+      ? SIMPLE
+      : {
+          g: S.g,
+          third: S.third,
+          bracket: {
+            r32: S.r32,
+            r16: S.r16,
+            qf: S.qf,
+            sf: S.sf,
+            final: S.final,
+            bronze: S.bronze
+          },
+          fun: FUN
+        };
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    setAutosaveState('saving');
+    setAutosaveLabel('Gemmer...');
+    const res = await server.autosavePrediction(
+      myName.trim(),
+      mode,
+      prediction,
+      code,
+      server.isAdmin ? server.adminPassword : ''
+    );
+    if (res.ok) {
+      const snapshot = JSON.stringify({ name: myName.trim(), mode, code, prediction, isAdmin: server.isAdmin });
+      autosaveSnapshotRef.current = snapshot;
+      const at = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setAutosaveState('saved');
+      setAutosaveLabel(`Gemt ${at}`);
+      if (res.editCode && res.editCode !== myEditCode) {
+        setMyEditCode(res.editCode);
+      }
+    } else {
+      setAutosaveState('error');
+      setAutosaveLabel('Fejl ved gem');
+    }
+  }, [myName, mode, myEditCode, SIMPLE, S, FUN, server, setMyEditCode]);
 
   useEffect(() => {
     if (!isAuthenticated || server.isAdmin || !mode || !myName?.trim()) return;
@@ -382,6 +523,15 @@ export default function App() {
             <div className="submit-meta-list">
               <p className="info-txt">Findes dit bud ikke endnu, bliver du oprettet som ny bruger og kan lave et nyt bud.</p>
             </div>
+            {authWarn && (
+              <div className="status-msg warn">
+                <p>{authWarn}</p>
+                <div className="submit-action-row" style={{ marginTop: '0.5rem' }}>
+                  <button className="btn-danger btn-sm" onClick={handleForceLogin} disabled={server.loading}>Fortsæt alligevel</button>
+                  <button className="btn-ghost btn-sm" onClick={() => { setAuthWarn(''); setPendingLoginArgs(null); }}>Ret navn</button>
+                </div>
+              </div>
+            )}
             {authStatus && <p className={`status-msg${authStatus.startsWith('❌') ? ' error' : ''}`}>{authStatus}</p>}
           </div>
         </div>
@@ -421,6 +571,15 @@ export default function App() {
             <span className="app-countdown-label">⏳ VM starter om:</span>
             <span className="app-countdown-timer">{countdownStr}</span>
           </div>
+        )}
+        {isAuthenticated && mode && !server.isAdmin && (
+          <button
+            className="btn-primary btn-sm"
+            onClick={handleManualSave}
+            disabled={server.loading || autosaveState === 'saving'}
+          >
+            💾 Gem
+          </button>
         )}
         <button className="btn-ghost btn-sm" onClick={() => setMode(null)}>
           Skift mode

@@ -196,6 +196,7 @@ a.lb-name-link:hover{color:#3b82f6}
 .mode-select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 10px 14px; font-size: .9em; cursor: pointer; }
 .status-msg { color: #10b981; font-size: .9em; margin-top: 8px; }
 .status-msg.error { color: #ef4444; }
+.status-msg.warn { color: #f59e0b; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); border-radius: 6px; padding: 10px 12px; }
 .info-txt { color: #64748b; font-size: .9em; }
 .warn-txt { color: #f59e0b; }
 .success-banner { background: #064e3b; border: 1px solid #10b981; color: #10b981; border-radius: 6px; padding: 8px 14px; font-size: .9em; margin-top: 10px; }
@@ -293,7 +294,111 @@ a.lb-name-link:hover{color:#3b82f6}
 .login-gate-wrap { min-height: 78vh; display: flex; align-items: center; justify-content: center; }
 .login-gate-card { width: 100%; max-width: 620px; }
 
+/* ── Bracket touch scroll ── */
+.bracket-scroll { -webkit-overflow-scrolling: touch; }
+
+/* ── 820px – tablet/small landscape ── */
 @media (max-width: 820px) {
-	.submit-panel-grid { grid-template-columns: 1fr; }
-	.smart-login-row { align-items: stretch; }
+  .submit-panel-grid { grid-template-columns: 1fr; }
+  .smart-login-row { align-items: stretch; }
+  .mode-cards { grid-template-columns: 1fr; max-width: 480px; }
+  .fun-grid { grid-template-columns: 1fr; }
+  .groups-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+
+/* ── 640px – phones ── */
+@media (max-width: 640px) {
+  body { padding: 10px; }
+
+  /* Header */
+  .app-header { gap: 8px; padding: 12px 0 14px; }
+  .app-header h1 { font-size: 1.15em; width: 100%; }
+  .app-logo { font-size: 1.6em; }
+  .app-user-indicator { font-size: .76em; padding: 5px 10px; }
+  .app-autosave-indicator { font-size: .74em; padding: 5px 10px; }
+  .app-countdown { padding: 5px 10px; }
+  .app-countdown-label { font-size: .66em; }
+  .app-countdown-timer { font-size: .95em; }
+
+  /* Tabs */
+  .tab-bar { gap: 2px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 0; scrollbar-width: none; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; padding: 10px 12px; font-size: .82em; flex-shrink: 0; }
+
+  /* Mode selector */
+  .mode-selector { margin: 24px auto; }
+  .mode-hero h1 { font-size: 1.6em; }
+  .mode-hero-icon { font-size: 2.5em; }
+  .mode-cards { grid-template-columns: 1fr; gap: 14px; }
+  .mode-card { padding: 20px; }
+  .mode-card h2 { font-size: 1.2em; }
+
+  /* Mode intro */
+  .mode-intro-page { margin: 24px auto; }
+  .mode-intro-card { padding: 18px; }
+  .mode-intro-actions { flex-direction: column; }
+  .mode-intro-actions .btn-lg { width: 100%; text-align: center; }
+
+  /* Groups */
+  .groups-grid { grid-template-columns: 1fr; }
+  .third-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+  /* Bracket – horizontal scroll on touch */
+  .bracket-scroll { overflow-x: auto; padding: 10px 0; }
+
+  /* Fun */
+  .fun-grid { grid-template-columns: 1fr; }
+  .fun-radio-group label { padding: 10px 12px; min-height: 44px; }
+
+  /* Leaderboard */
+  .lb-breakdown { grid-template-columns: 1fr 1fr; }
+  .lb-view-switch { gap: 6px; }
+  .lb-view-btn { font-size: .78em; padding: 7px 10px; }
+
+  /* Submit / login */
+  .submit-panel-grid { grid-template-columns: 1fr; }
+  .submit-action-row { flex-direction: column; align-items: stretch; }
+  .submit-action-row button { width: 100%; min-height: 44px; }
+  .login-gate-wrap { align-items: flex-start; padding-top: 32px; min-height: unset; }
+
+  /* Buttons – touch-friendly */
+  .btn-primary, .btn-accent, .btn-ghost, .btn-danger { min-height: 44px; }
+  .btn-sm { min-height: 36px; }
+  .btn-lg { min-height: 52px; }
+
+  /* Inputs – prevent iOS zoom (needs font-size ≥ 16px) */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  select,
+  .name-input,
+  .fun-card select,
+  .fun-card input[type=text],
+  .fun-card input[type=number],
+  .select-wrap select { font-size: 16px; }
+
+  /* Modals */
+  .modal-box { padding: 20px; width: 95%; }
+  .modal-btns { flex-direction: column; }
+  .modal-btns button { width: 100%; min-height: 44px; }
+  .preview-box { padding: 16px; }
+
+  /* Reveal banner */
+  .reveal-banner { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; }
+  .reveal-countdown { font-size: 1.2em; }
+
+  /* Section cards */
+  .section-card { padding: 14px; }
+  .form-grid { grid-template-columns: 1fr; }
+
+  /* Winner banner */
+  .winner-banner { font-size: 1em; padding: 10px 14px; }
+}
+
+/* ── Very small phones (≤ 390px) ── */
+@media (max-width: 390px) {
+  .app-header h1 { font-size: 1em; }
+  .tab-btn { font-size: .78em; padding: 9px 10px; }
+  .bm { width: 140px; }
+  .bm-slot { font-size: .76em; padding: 6px 8px; }
 }
