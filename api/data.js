@@ -155,7 +155,7 @@ function validatePrediction(mode, prediction) {
       ? null
       : 'Du skal udfylde alle felter i Fodboldinteresseret mode før indsendelse.';
   }
-        const prefixes = ['', 'wc2026-', BLOB_NAME.replace(/\.json$/i, '')];
+  return null;
 }
 
 async function readBlob() {
@@ -190,10 +190,7 @@ async function readBlobByUrl(url) {
 }
 
 async function writeBlob(data) {
-            participantsCount: participants.length,
-            predictionsCount: predictions.length,
-            entriesCount: entries.length,
-            recordsCount: records.length,
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error('BLOB_READ_WRITE_TOKEN mangler i Vercel Environment Variables');
   }
   if (!['public', 'private'].includes(BLOB_ACCESS)) {

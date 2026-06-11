@@ -386,7 +386,7 @@ export default function KonkurrenceTab({
           <div className="reveal-icon">🔒</div>
           <div>
             <strong>Forudsigelserne afsløres når VM starter</strong>
-            <div className="reveal-date">1. juni 2026 kl. 21:00 dansk tid</div>
+            <div className="reveal-date">11. juni 2026 kl. 21:00 dansk tid</div>
             <div className="reveal-countdown">{countdownStr}</div>
           </div>
         </div>

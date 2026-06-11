@@ -406,8 +406,12 @@ export default function App() {
     await doLogin(pendingLoginArgs.name, pendingLoginArgs.code);
   }, [pendingLoginArgs, doLogin]);
 
-  const handleSwitchUser = useCallback(() => {
-    setIsAuthenticated(false);
+  const handleSwitchMode = useCallback(() => {
+    if (hasUnsavedChanges && !window.confirm('Du har ugemte ændringer. Vil du skifte mode alligevel? Dine ændringer gemmes ikke.')) return;
+    setMode(null);
+  }, [hasUnsavedChanges, setMode]);
+
+  const handleSwitchUser = useCallback(() => {    setIsAuthenticated(false);
     setShowModeIntro(false);
     setMode(null);
     setAuthStatus('');
@@ -435,7 +439,8 @@ export default function App() {
       server.isAdmin ? server.adminPassword : ''
     );
     if (res.ok) {
-      const snapshot = JSON.stringify({ name: myName.trim(), mode, code, prediction, isAdmin: server.isAdmin });
+      const resolvedCode = res.editCode || code;
+      const snapshot = JSON.stringify({ name: myName.trim(), mode, code: resolvedCode, prediction, isAdmin: server.isAdmin });
       autosaveSnapshotRef.current = snapshot;
       const at = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setHasUnsavedChanges(false);
@@ -494,6 +499,7 @@ export default function App() {
                   placeholder="Dit navn"
                   value={authName}
                   onChange={e => setAuthName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !server.loading && handleInitialLogin()}
                 />
                 <input
                   type="text"
@@ -501,6 +507,7 @@ export default function App() {
                   placeholder="Kode"
                   value={authCode}
                   onChange={e => setAuthCode(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && !server.loading && handleInitialLogin()}
                 />
               </div>
             </div>
@@ -569,7 +576,7 @@ export default function App() {
             💾 Gem
           </button>
         )}
-        <button className="btn-ghost btn-sm" onClick={() => setMode(null)}>
+        <button className="btn-ghost btn-sm" onClick={handleSwitchMode}>
           Skift mode
         </button>
         <button className="btn-ghost btn-sm" onClick={handleSwitchUser}>
