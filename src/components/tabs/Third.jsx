@@ -38,7 +38,7 @@ export default function ThirdTab({ S, setThird, onResetThird, isLocked = false }
             <div
               key={k}
               className={'third-item' + (isSel ? ' sel' : '') + (isBlocked ? ' blocked' : '')}
-              onClick={() => !isLocked && !isBlocked && toggle(k)}
+              onClick={() => !isBlocked && toggle(k)}
             >
               {p3 ? <FlagSpan team={p3} /> : null}
               <strong>{g.name}</strong>

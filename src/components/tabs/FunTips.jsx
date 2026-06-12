@@ -8,8 +8,9 @@ export default function FunTipsTab({ FUN, updateFun, onResetFun, onResetAll, isL
         <h2>🎯 Sjove tips</h2>
         <p>Gæt rigtigt og hent ekstra point!</p>
         <div className="submit-row" style={{ marginTop: 12 }}>
-          <button className="btn-ghost btn-sm" onClick={() => onResetFun?.()} disabled={isLocked}>🧹 Nulstil sjove tips</button>
-          <button className="btn-ghost btn-sm" onClick={() => onResetAll?.()} disabled={isLocked}>🗑️ Nulstil alt</button>
+          <button onClick={onResetFun?.()} disabled={isLocked}>🧹 Nulstil sjove tips</button>
+          <button onClick={onResetAll?.()} disabled={isLocked}>🗑️ Nulstil alt</button>
+
         </div>
       </div>
       <div className="fun-grid">
