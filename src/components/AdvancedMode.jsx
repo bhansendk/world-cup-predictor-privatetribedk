@@ -30,7 +30,6 @@ export default function AdvancedMode(props) {
       serverData, adminUpdate, adminVerify, adminDelete, adminClearAll, loading,
         fetchData, onReset, onResetGroups, onResetThird, onResetBracket, onResetFun,
         setS, setFUN, setSIMPLE, myName, isAdmin, adminLogout, adminPassword, isLocked = false } = props;
-  const isReadOnly = isLocked && !isAdmin;
 
   const randomPick = (arr) => arr[Math.floor(Math.random() * arr.length)] || null;
 
@@ -44,7 +43,7 @@ export default function AdvancedMode(props) {
   };
 
   const fillAllRandomAdvanced = () => {
-    if (isReadOnly) return;
+    if (isLocked) return;
     const groupEntries = Object.entries(GROUPS);
     const g = {};
 
@@ -149,16 +148,46 @@ export default function AdvancedMode(props) {
       </div>
 
       {tab === 'groups' && (
-        <GroupsTab S={S} updateGroup={updateGroup} onRandomFillAll={fillAllRandomAdvanced} onResetGroups={onResetGroups} onResetAll={onReset} isLocked={isReadOnly} />
+        <GroupsTab
+          S={S}
+          updateGroup={updateGroup}
+          onRandomFillAll={fillAllRandomAdvanced}
+          onResetGroups={onResetGroups}
+          onResetAll={onReset}
+          isLocked={isLocked}
+        />
       )}
+
       {tab === 'third' && (
-        <ThirdTab S={S} setThird={setThird} onResetThird={onResetThird} isLocked={isReadOnly} />
+        <ThirdTab
+          S={S}
+          setThird={setThird}
+          onResetThird={onResetThird}
+          isLocked={isLocked}
+        />
       )}
+
       {tab === 'bracket' && (
-        <BracketTab S={S} onPick={onBracketPick} SIMPLE={SIMPLE} updateSimple={updateSimple} onResetBracket={onResetBracket} readOnly={isReadOnly} />
+        <BracketTab
+          S={S}
+          onPick={onBracketPick}
+          SIMPLE={SIMPLE}
+          updateSimple={updateSimple}
+          onResetBracket={onResetBracket}
+          readOnly={isLocked}
+        />
       )}
+
       {tab === 'fun' && (
-        <FunTipsTab FUN={FUN} SIMPLE={SIMPLE} updateFun={updateFun} updateSimple={updateSimple} onResetFun={onResetFun} onResetAll={onReset} isLocked={isReadOnly} />
+        <FunTipsTab
+          FUN={FUN}
+          SIMPLE={SIMPLE}
+          updateFun={updateFun}
+          updateSimple={updateSimple}
+          onResetFun={onResetFun}
+          onResetAll={onReset}
+          isLocked={isLocked}
+        />
       )}
       {tab === 'ranking' && (
         <KonkurrenceTab

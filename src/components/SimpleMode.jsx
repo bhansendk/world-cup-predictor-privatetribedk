@@ -38,6 +38,7 @@ export default function SimpleMode({
   isLocked = false,
   isAdmin = false,
   adminPassword = ''
+
 }) {
   const [name, setName] = useState(myName || '');
   const [editCode, setEditCode] = useState(myEditCode || DEFAULT_EDIT_CODE);
@@ -66,7 +67,7 @@ export default function SimpleMode({
     }
     const prediction = { ...SIMPLE };
     const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
-    const res = await onSubmit(name.trim(), 'simple', prediction, currentCode, isAdmin ? adminPassword : '', newEditCode.trim());
+    const res = await onSubmit(name.trim(), 'simple', prediction, currentCode, '', isAdmin ? adminPassword : '', newEditCode.trim());
     if (res.ok) {
       setMyName(name.trim());
       if (res.editCode) {
@@ -206,8 +207,8 @@ export default function SimpleMode({
           </div>
 
           <div className="submit-action-row">
-            <button className="btn-primary" onClick={handleSubmit} disabled={loading || (registrationClosed && !isAdmin)}>
-              {loading ? 'Sender…' : (registrationClosed && !isAdmin) ? 'Tilmelding lukket' : 'Send forudsigelse ✈️'}
+            <button className="btn-primary" onClick={handleSubmit} disabled={loading || registrationClosed}>
+              {loading ? 'Sender…' : registrationClosed ? 'Tilmelding lukket' : 'Send forudsigelse ✈️'}
             </button>
             <button className="btn-ghost btn-sm" onClick={onResetTop4}>🧹 Nulstil top 4</button>
             <button className="btn-ghost btn-sm" onClick={onResetFun}>🧹 Nulstil sjove tips</button>
@@ -216,7 +217,7 @@ export default function SimpleMode({
 
           <div className="submit-meta-list">
             <p className="info-txt">Ved foerste gem gives du automatisk en unik redigeringskode. Gem manuelt med knappen "Gem" naAr du laver aendringer. Efter 11-06-2026 kl. 21 er aendringer lukket (undtagen admin).</p>
-            {registrationClosed && !isAdmin && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
+            {registrationClosed && <p className="info-txt">⛔ Tilmelding er lukket fra 11. juni 2026 kl. 21:00 dansk tid.</p>}
             {!registrationClosed && !isComplete && <p className="info-txt">Manglende felter: {missingFields.join(', ')}.</p>}
           </div>
 
