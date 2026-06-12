@@ -1,7 +1,7 @@
 import { GROUPS, FUN_PTS } from '../data/wc2026.js';
 import { COMBO } from '../data/combo.js';
 
-const GROUP_BASE_POINTS = { 1: 4, 2: 3, 3: 2 };
+const GROUP_BASE_POINTS = { 1: 3, 2: 2, 3: 2 };
 
 // ── Resolve bracket slot to team name ────────────────────────────
 export function resolveSlot(slot, g, third) {
@@ -64,7 +64,7 @@ export function calcScore(tips, bracket, fun, AR) {
 
       const base = GROUP_BASE_POINTS[predictedRank] || 0;
       const penalty = Math.abs(predictedRank - actualRank);
-      const score = Math.max(base - penalty, 0);
+      const score = Math.max(base - penalty, 1); // min. 1 pt for at ramme at holdet går videre
 
       pts += score;
       gp += score;

@@ -6,13 +6,13 @@ export function FlagSpan({ team }) {
   return <span className={`fi fi-${code}`} style={{ marginRight: 6 }} />;
 }
 
-export function TeamSelect({ value, onChange, label, placeholder = '– Vælg hold –' }) {
+export function TeamSelect({ value, onChange, label, placeholder = '– Vælg hold –', disabled = false }) {
   return (
     <div className="field-row">
       {label && <label>{label}</label>}
       <div className="select-wrap">
         {value && <FlagSpan team={value} />}
-        <select value={value || ''} onChange={e => onChange(e.target.value || null)}>
+        <select value={value || ''} onChange={e => onChange && onChange(e.target.value || null)} disabled={disabled}>
           <option value="">{placeholder}</option>
           {ALL_TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -21,14 +21,14 @@ export function TeamSelect({ value, onChange, label, placeholder = '– Vælg ho
   );
 }
 
-export function FunQuestionSelect({ qid, value, onChange }) {
+export function FunQuestionSelect({ qid, value, onChange, disabled = false }) {
   const q = FUN_QUESTIONS.find(x => x.id === qid);
   if (!q) return null;
   return (
     <div className="field-row">
       <label>{q.title}</label>
       <div className="select-wrap">
-        <select value={value || ''} onChange={e => onChange(e.target.value || null)}>
+        <select value={value || ''} onChange={e => onChange && onChange(e.target.value || null)} disabled={disabled}>
           <option value="">– Vælg –</option>
           {q.options.map(o => <option key={o} value={o}>{o}</option>)}
         </select>

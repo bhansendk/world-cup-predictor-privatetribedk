@@ -34,7 +34,8 @@ export default function SimpleMode({
   setMyName,
   myEditCode,
   setMyEditCode,
-  onLoadMine
+  onLoadMine,
+  isLocked = false
 }) {
   const [name, setName] = useState(myName || '');
   const [editCode, setEditCode] = useState(myEditCode || DEFAULT_EDIT_CODE);
@@ -119,12 +120,17 @@ export default function SimpleMode({
 
   return (
     <div className="mode-container">
+      {isLocked && (
+        <div className="info-card" style={{ borderLeft: '4px solid #f59e0b', marginBottom: 16 }}>
+          <p>🔒 <strong>Bud låst.</strong> VM er startet – ændringer er ikke længere mulige.</p>
+        </div>
+      )}
       <div className="section-card">
         <h2>⚡ Hurtig mode</h2>
         <p className="section-desc">Vælg din top 4 og 4 sjove forudsigelser.</p>
         <div className="form-grid">
           {top4.map(({ key, label }) => (
-            <TeamSelect key={key} label={label} value={SIMPLE[key]} onChange={v => onChange(key, v)} />
+            <TeamSelect key={key} label={label} value={SIMPLE[key]} onChange={isLocked ? undefined : v => onChange(key, v)} disabled={isLocked} />
           ))}
         </div>
       </div>
@@ -133,7 +139,7 @@ export default function SimpleMode({
         <h2>🎯 Sjove tips</h2>
         <div className="form-grid">
           {funShared.map(({ key, label }) => (
-            <FunQuestionSelect key={key} qid={key} value={SIMPLE[key]} onChange={v => onChange(key, v)} />
+            <FunQuestionSelect key={key} qid={key} value={SIMPLE[key]} onChange={isLocked ? undefined : v => onChange(key, v)} disabled={isLocked} />
           ))}
         </div>
       </div>

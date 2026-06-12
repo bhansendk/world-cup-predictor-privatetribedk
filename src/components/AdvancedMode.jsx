@@ -29,7 +29,7 @@ export default function AdvancedMode(props) {
   const { S, FUN, SIMPLE, updateGroup, setThird, onBracketPick, updateFun, updateSimple,
       serverData, adminUpdate, adminVerify, adminDelete, adminClearAll, loading,
         fetchData, onReset, onResetGroups, onResetThird, onResetBracket, onResetFun,
-        setS, setFUN, setSIMPLE, myName, isAdmin, adminLogout, adminPassword } = props;
+        setS, setFUN, setSIMPLE, myName, isAdmin, adminLogout, adminPassword, isLocked = false } = props;
 
   const randomPick = (arr) => arr[Math.floor(Math.random() * arr.length)] || null;
 
@@ -117,10 +117,15 @@ export default function AdvancedMode(props) {
 
   return (
     <div className="mode-container">
+      {isLocked && (
+        <div className="info-card" style={{ borderLeft: '4px solid #f59e0b', marginBottom: 16 }}>
+          <p>🔒 <strong>Bud låst.</strong> VM er startet – ændringer er ikke længere mulige.</p>
+        </div>
+      )}
       <div className="section-card">
         <h2>📘 Pointsystem - Fodboldinteresseret</h2>
         <ul className="points-list">
-          <li>Grupper: 1./2./3. plads giver 4/3/2 point, men du mister 1 point pr. forkert placering (kun for hold der går videre)</li>
+          <li>Grupper: 1./2./3. plads giver 3/2/2 point, men du mister 1 point pr. forkert placering (min. 1 pt for hold der går videre)</li>
           <li>8 bedste 3'ere: 2 point pr. korrekt gruppe</li>
           <li>Bracket: point gives for hvor langt et hold kommer (ikke præcis kamp/slot): R16 = 2, KF = 4, SF = 6, Finale = 8</li>
           <li>Finale: korrekt finalist = 6 point pr. hold, mester = 15 point</li>

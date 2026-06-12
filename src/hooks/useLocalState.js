@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const LS_KEY = 'vm2026_tirsdagsklubben';
-const LS_MYNAME_KEY = 'vm2026_tirsdagsklubben_myname';
-const LS_MYCODE_KEY = 'vm2026_tirsdagsklubben_editcode';
+const LS_KEY = 'vm2026_privattribedk';
+const LS_MYNAME_KEY = 'vm2026_privattribedk_myname';
+const LS_MYCODE_KEY = 'vm2026_privattribedk_editcode';
 
 const EMPTY_S = { g: {}, third: [], r32: {}, r16: {}, qf: {}, sf: {}, final: {}, bronze: {} };
 const EMPTY_SIMPLE = {

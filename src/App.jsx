@@ -507,7 +507,9 @@ export default function App() {
             </div>
             <div className="submit-action-row">
               <button className="btn-primary" onClick={handleInitialLogin} disabled={server.loading}>Log ind</button>
-              <button className="btn-ghost" onClick={handleCreateNewUser} disabled={server.loading}>Opret ny bruger</button>
+              {Date.now() < VM_KICKOFF.getTime() && (
+                <button className="btn-ghost" onClick={handleCreateNewUser} disabled={server.loading}>Opret ny bruger</button>
+              )}
             </div>
             <div className="submit-meta-list">
               <p className="info-txt">Login henter kun eksisterende bud. Hvis du er ny, brug "Opret ny bruger".</p>
@@ -542,6 +544,7 @@ export default function App() {
     );
   }
 
+  const isLocked = !server.isAdmin && Date.now() >= VM_KICKOFF.getTime();
   const champ = S.final?.['fin'] || SIMPLE?.top1 || null;
 
   return (
@@ -556,7 +559,7 @@ export default function App() {
             <span className="app-countdown-timer">{countdownStr}</span>
           </div>
         )}
-        {isAuthenticated && mode && !server.isAdmin && (
+        {isAuthenticated && mode && !server.isAdmin && !isLocked && (
           <button
             className={`btn-sm ${
               saveStatus === 'saving' ? 'btn-ghost' :
@@ -573,6 +576,9 @@ export default function App() {
              saveStatus === 'error' ? '⚠ Fejl ved gem' :
              hasUnsavedChanges ? '💾 Gem ●' : '💾 Gem'}
           </button>
+        )}
+        {isAuthenticated && mode && isLocked && (
+          <span className="btn-sm btn-ghost" style={{ cursor: 'default', opacity: 0.7 }}>🔒 Bud låst</span>
         )}
         <button className="btn-ghost btn-sm" onClick={handleSwitchMode}>
           Skift mode
@@ -615,6 +621,7 @@ export default function App() {
           myEditCode={myEditCode}
           setMyEditCode={setMyEditCode}
           onLoadMine={loadMyPrediction}
+          isLocked={isLocked}
         />
       ) : (
         <AdvancedMode
@@ -645,6 +652,7 @@ export default function App() {
           setFUN={setFUN}
           setSIMPLE={setSIMPLE}
           myName={myName}
+          isLocked={isLocked}
         />
       )}
     </div>
