@@ -119,13 +119,12 @@ function decodeImportText(rawText) {
   throw new Error('Kunne ikke aflæse import-teksten');
 }
 
-function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onLoadPrediction, loading, colleagues, serverData, fetchData }) {
+function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onLoadPrediction, loading, colleagues, serverData }) {
   const [pw, setPw] = useState('');
   const [status, setStatus] = useState('');
   const [importName, setImportName] = useState('');
   const [importText, setImportText] = useState('');
   const [resultState, setResultState] = useState(() => ({ ...emptyResults(), ...(serverData?.results || {}) }));
-  const [syncLoading, setSyncLoading] = useState(false);
 
   useEffect(() => {
     setResultState({ ...emptyResults(), ...(serverData?.results || {}) });
@@ -206,34 +205,6 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
       setStatus(`✅ Forudsigelse indlæst for ${parsed.mode === 'simple' ? 'Hurtig' : 'Fodboldinteresseret'}. Du kan nu rette i fanerne.`);
     } catch (e) {
       setStatus('❌ ' + e.message);
-    }
-  };
-
-  const handleSyncFromApi = async () => {
-    if (!isAdmin) {
-      setStatus('❌ Log ind først');
-      return;
-    }
-
-    try {
-      setSyncLoading(true);
-      setStatus('⏳ Henter seneste resultater fra football API...');
-      const res = await fetch('/api/fetch-results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: activePw })
-      });
-      const payload = await res.json();
-      if (!res.ok || !payload?.ok) {
-        throw new Error(payload?.error || 'Import fra API fejlede');
-      }
-      setResultState({ ...emptyResults(), ...(payload.results || {}) });
-      await fetchData?.();
-      setStatus('✅ Resultater hentet fra API og gemt på serveren.');
-    } catch (e) {
-      setStatus('❌ ' + e.message);
-    } finally {
-      setSyncLoading(false);
     }
   };
 
@@ -447,19 +418,6 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
         </div>
       </div>
 
-      <div className="section-card">
-        <h3>🔄 Automatisk import</h3>
-        <p className="info-txt">Daglig kørsel er sat til kl. 08:30 dansk tid via Vercel cron. Du kan også hente manuelt her.</p>
-        <div className="submit-row">
-          <button className="btn-accent" onClick={handleSyncFromApi} disabled={loading || syncLoading}>
-            {syncLoading ? 'Henter…' : '🔄 Hent resultater fra API'}
-          </button>
-          {serverData?.results?.importedAt && (
-            <span className="info-txt">Sidst importeret: {new Date(serverData.results.importedAt).toLocaleString('da-DK')}</span>
-          )}
-        </div>
-      </div>
-
       <div className="submit-row">
         <button className="btn-primary" onClick={handleSaveResults} disabled={loading}>
           {loading ? 'Gemmer…' : '💾 Gem alle resultater'}
@@ -471,7 +429,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
   );
 }
 
-export default function ResultaterTab({ serverData, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading, fetchData, setS, setFUN, setSIMPLE }) {
+export default function ResultaterTab({ serverData, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading, setS, setFUN, setSIMPLE }) {
   const [adminOpen, setAdminOpen] = useState(false);
   const colleagues = serverData?.colleagues || [];
 

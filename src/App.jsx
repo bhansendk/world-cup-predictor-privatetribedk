@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useLocalState from './hooks/useLocalState.js';
 import useServerData from './hooks/useServerData.js';
-import StatistikTab from './components/tabs/Statistik.jsx';
 
 const VM_KICKOFF = new Date('2026-06-11T19:00:00Z'); // 11. juni 2026 kl. 21:00 CEST
 
@@ -68,7 +67,6 @@ function isFilled(v) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState('prediction');
   const local = useLocalState();
   const server = useServerData();
   const countdownStr = useCountdownStr(VM_KICKOFF.getTime());
@@ -587,21 +585,6 @@ export default function App() {
           Skift bruger
         </button>
       </header>
-      <div className="tab-menu" style={{ margin: '12px 0' }}>
-        <button
-          onClick={() => setTab('prediction')}
-          className={tab === 'prediction' ? 'active' : ''}
-        >
-          🎯 Forudsigelse
-        </button>
-
-        <button
-          onClick={() => setTab('stats')}
-          className={tab === 'stats' ? 'active' : ''}
-        >
-          📊 Statistik
-        </button>
-      </div>
 
       {champ && <WinnerBanner champ={champ} />}
 
@@ -618,68 +601,59 @@ export default function App() {
         </div>
       )}
 
-
-      {tab === 'prediction' && (
-        <>
-          {mode === 'simple' ? (
-            <SimpleMode
-              SIMPLE={SIMPLE}
-              S={S}
-              onChange={handleSimpleChange}
-              onFunChange={updateFun}
-              FUN={FUN}
-              serverData={server.serverData}
-              onSubmit={server.submitPrediction}
-              loading={server.loading}
-              onReset={resetAll}
-              onResetTop4={resetSimpleTop4Only}
-              onResetFun={resetSimpleFunOnly}
-              myName={myName}
-              setMyName={setMyName}
-              myEditCode={myEditCode}
-              setMyEditCode={setMyEditCode}
-              onLoadMine={loadMyPrediction}
-              isLocked={isLocked}
-              isAdmin={server.isAdmin}
-              adminPassword={server.adminPassword}
-            />
-          ) : (
-            <AdvancedMode
-              S={S}
-              FUN={FUN}
-              SIMPLE={SIMPLE}
-              updateGroup={updateGroup}
-              setThird={setThird}
-              onBracketPick={handleBracketPick}
-              updateFun={updateFun}
-              updateSimple={handleSimpleChange}
-              serverData={server.serverData}
-              adminUpdate={server.adminUpdateResults}
-              adminVerify={server.adminVerifyPassword}
-              adminLogout={server.adminLogout}
-              isAdmin={server.isAdmin}
-              adminPassword={server.adminPassword}
-              adminDelete={server.adminDeleteOne}
-              adminClearAll={server.adminClearAll}
-              loading={server.loading}
-              fetchData={server.fetchData}
-              onReset={resetAll}
-              onResetGroups={resetGroupsOnly}
-              onResetThird={resetThirdOnly}
-              onResetBracket={resetBracketOnly}
-              onResetFun={resetFunOnly}
-              setS={setS}
-              setFUN={setFUN}
-              setSIMPLE={setSIMPLE}
-              myName={myName}
-              isLocked={isLocked}
-            />
-          )}
-        </>
-      )}
-
-      {tab === 'stats' && (
-        <StatistikTab serverData={server.serverData} />
+      {mode === 'simple' ? (
+        <SimpleMode
+          SIMPLE={SIMPLE}
+          S={S}
+          onChange={handleSimpleChange}
+          onFunChange={updateFun}
+          FUN={FUN}
+          serverData={server.serverData}
+          onSubmit={server.submitPrediction}
+          loading={server.loading}
+          onReset={resetAll}
+          onResetTop4={resetSimpleTop4Only}
+          onResetFun={resetSimpleFunOnly}
+          myName={myName}
+          setMyName={setMyName}
+          myEditCode={myEditCode}
+          setMyEditCode={setMyEditCode}
+          onLoadMine={loadMyPrediction}
+          isLocked={isLocked}
+          isAdmin={server.isAdmin}
+          adminPassword={server.adminPassword}
+        />
+      ) : (
+        <AdvancedMode
+          S={S}
+          FUN={FUN}
+          SIMPLE={SIMPLE}
+          updateGroup={updateGroup}
+          setThird={setThird}
+          onBracketPick={handleBracketPick}
+          updateFun={updateFun}
+          updateSimple={handleSimpleChange}
+          serverData={server.serverData}
+          adminUpdate={server.adminUpdateResults}
+          adminVerify={server.adminVerifyPassword}
+          adminLogout={server.adminLogout}
+          isAdmin={server.isAdmin}
+          adminPassword={server.adminPassword}
+          adminDelete={server.adminDeleteOne}
+          adminClearAll={server.adminClearAll}
+          loading={server.loading}
+          fetchData={server.fetchData}
+          onReset={resetAll}
+          onResetGroups={resetGroupsOnly}
+          onResetThird={resetThirdOnly}
+          onResetBracket={resetBracketOnly}
+          onResetFun={resetFunOnly}
+          setS={setS}
+          setFUN={setFUN}
+          setSIMPLE={setSIMPLE}
+          myName={myName}
+          isLocked={isLocked}
+        />
       )}
     </div>
   );
