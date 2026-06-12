@@ -59,7 +59,7 @@ export default function SimpleMode({
   }, [myEditCode]);
 
   const handleSubmit = async () => {
-    if (registrationClosed) { setStatus('⛔ Tilmelding er lukket. VM er startet.'); return; }
+    if (registrationClosed && !isAdmin) { setStatus('⛔ Tilmelding er lukket. VM er startet.'); return; }
     if (!name.trim()) { setStatus('Skriv dit navn først!'); return; }
     if (!isComplete) {
       setStatus('⚠️ Mangler i Hurtig mode: ' + missingFields.join(', '));

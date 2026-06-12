@@ -655,6 +655,8 @@ export default function App() {
           setSIMPLE={setSIMPLE}
           myName={myName}
           isLocked={isLocked}
+          isAdmin={server.isAdmin}
+          adminPassword={server.adminPassword}
         />
       )}
     </div>
