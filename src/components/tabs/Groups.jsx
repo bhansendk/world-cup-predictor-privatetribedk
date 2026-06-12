@@ -6,6 +6,7 @@ function GroupCard({ groupKey, group, gs, onPick }) {
   const filled = ranks.filter(Boolean).length;
 
   const clickTeam = (team) => {
+    if (isLocked) return
     const idx = ranks.indexOf(team);
     if (idx >= 0) {
       // deselect
@@ -46,8 +47,9 @@ function GroupCard({ groupKey, group, gs, onPick }) {
   );
 }
 
-export default function GroupsTab({ S, updateGroup, onRandomFillAll, onResetGroups, onResetAll }) {
+export default function GroupsTab({ S, updateGroup, onRandomFillAll, onResetGroups, onResetAll, isLocked = false }) {
   const handlePick = (gKey, ranks) => {
+    if (isLocked) return;
     Object.entries(ranks).forEach(([field, val]) => updateGroup(gKey, field, val));
   };
 
@@ -62,9 +64,9 @@ export default function GroupsTab({ S, updateGroup, onRandomFillAll, onResetGrou
         <h2>🏟️ Grupperunde</h2>
         <p>Klik på et hold for at rangere dem 1., 2. og 3. i gruppen. Point for videre hold: 1'er = 4, 2'er = 3, 3'er = 2, minus 1 point pr. forkert placering.</p>
         <div className="submit-row" style={{ marginTop: 12 }}>
-          <button className="btn-accent btn-sm" onClick={() => onRandomFillAll?.()}>🎲 Udfyld alt tilfældigt</button>
-          <button className="btn-ghost btn-sm" onClick={() => onResetGroups?.()}>🧹 Nulstil grupper</button>
-          <button className="btn-ghost btn-sm" onClick={() => onResetAll?.()}>🗑️ Nulstil alt</button>
+            <button className="btn-accent btn-sm" onClick={() => onRandomFillAll?.()}>🎲 Udfyld alt tilfældigt</button>
+            <button className="btn-ghost btn-sm" onClick={() => onResetGroups?.()}>🧹 Nulstil grupper</button>
+            <button className="btn-ghost btn-sm" onClick={() => onResetAll?.()}>🗑️ Nulstil alt</button>
         </div>
         {allFilled && <div className="success-banner">✅ Alle grupper er udfyldt! Gå videre til 3'erne.</div>}
       </div>
@@ -76,6 +78,7 @@ export default function GroupsTab({ S, updateGroup, onRandomFillAll, onResetGrou
             group={group}
             gs={S.g[key] || {}}
             onPick={handlePick}
+            isLocked={isLocked}
           />
         ))}
       </div>

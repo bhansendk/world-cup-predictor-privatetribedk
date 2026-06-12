@@ -43,6 +43,7 @@ export default function AdvancedMode(props) {
   };
 
   const fillAllRandomAdvanced = () => {
+    if (isLocked) return;
     const groupEntries = Object.entries(GROUPS);
     const g = {};
 
@@ -147,16 +148,46 @@ export default function AdvancedMode(props) {
       </div>
 
       {tab === 'groups' && (
-        <GroupsTab S={S} updateGroup={updateGroup} onRandomFillAll={fillAllRandomAdvanced} onResetGroups={onResetGroups} onResetAll={onReset} />
+        <GroupsTab
+          S={S}
+          updateGroup={updateGroup}
+          onRandomFillAll={fillAllRandomAdvanced}
+          onResetGroups={onResetGroups}
+          onResetAll={onReset}
+          isLocked={isLocked}
+        />
       )}
+
       {tab === 'third' && (
-        <ThirdTab S={S} setThird={setThird} onResetThird={onResetThird} />
+        <ThirdTab
+          S={S}
+          setThird={setThird}
+          onResetThird={onResetThird}
+          isLocked={isLocked}
+        />
       )}
+
       {tab === 'bracket' && (
-        <BracketTab S={S} onPick={onBracketPick} SIMPLE={SIMPLE} updateSimple={updateSimple} onResetBracket={onResetBracket} />
+        <BracketTab
+          S={S}
+          onPick={onBracketPick}
+          SIMPLE={SIMPLE}
+          updateSimple={updateSimple}
+          onResetBracket={onResetBracket}
+          readOnly={isLocked}
+        />
       )}
+
       {tab === 'fun' && (
-        <FunTipsTab FUN={FUN} SIMPLE={SIMPLE} updateFun={updateFun} updateSimple={updateSimple} onResetFun={onResetFun} onResetAll={onReset} />
+        <FunTipsTab
+          FUN={FUN}
+          SIMPLE={SIMPLE}
+          updateFun={updateFun}
+          updateSimple={updateSimple}
+          onResetFun={onResetFun}
+          onResetAll={onReset}
+          isLocked={isLocked}
+        />
       )}
       {tab === 'ranking' && (
         <KonkurrenceTab

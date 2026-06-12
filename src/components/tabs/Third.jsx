@@ -1,7 +1,7 @@
 import { GROUPS } from '../../data/wc2026.js';
 import { FlagSpan } from '../FormFields.jsx';
 
-export default function ThirdTab({ S, setThird, onResetThird }) {
+export default function ThirdTab({ S, setThird, onResetThird, isLocked = false }) {
   const sel = S.third || [];
   const allGroupsFilled = Object.keys(GROUPS).every(k => {
     const g = S.g[k] || {};
@@ -9,6 +9,7 @@ export default function ThirdTab({ S, setThird, onResetThird }) {
   });
 
   const toggle = (k) => {
+    if (isLocked) return;
     const idx = sel.indexOf(k);
     if (idx >= 0) setThird(sel.filter(x => x !== k));
     else if (sel.length < 8) setThird([...sel, k]);
@@ -24,7 +25,7 @@ export default function ThirdTab({ S, setThird, onResetThird }) {
           {!allGroupsFilled && <span className="warn-txt"> Udfyld grupperunden først.</span>}
         </p>
         <div className="submit-row" style={{ marginTop: 12 }}>
-          <button className="btn-ghost btn-sm" onClick={() => onResetThird?.()}>🧹 Nulstil 3'ere</button>
+          <button className="btn-ghost btn-sm" onClick={() => onResetThird?.()} disabled={isLocked}>🧹 Nulstil 3'ere</button>
         </div>
         {sel.length === 8 && <div className="success-banner">✅ 8 bedste 3'ere valgt! Gå videre til Bracket.</div>}
       </div>

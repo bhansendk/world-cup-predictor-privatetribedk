@@ -559,27 +559,30 @@ export default function App() {
             <span className="app-countdown-timer">{countdownStr}</span>
           </div>
         )}
-        {isAuthenticated && mode && !server.isAdmin && !isLocked && (
-          <button
-            className={`btn-sm ${
-              saveStatus === 'saving' ? 'btn-ghost' :
-              saveStatus === 'saved' ? 'btn-ghost' :
-              saveStatus === 'error' ? 'btn-danger' :
-              hasUnsavedChanges ? 'btn-primary' : 'btn-ghost'
-            }`}
-            onClick={handleManualSave}
-            disabled={server.loading || saveStatus === 'saving' || (!hasUnsavedChanges && saveStatus !== 'error')}
-            title={hasUnsavedChanges ? 'Du har ugemte ændringer' : ''}
-          >
-            {saveStatus === 'saving' ? 'Gemmer…' :
-             saveStatus === 'saved' ? '✓ Gemt' :
-             saveStatus === 'error' ? '⚠ Fejl ved gem' :
-             hasUnsavedChanges ? '💾 Gem ●' : '💾 Gem'}
-          </button>
-        )}
-        {isAuthenticated && mode && isLocked && (
-          <span className="btn-sm btn-ghost" style={{ cursor: 'default', opacity: 0.7 }}>🔒 Bud låst</span>
-        )}
+          {isAuthenticated && mode && (!isLocked || server.isAdmin) && (
+            <button
+              className={`btn-sm ${
+                saveStatus === 'saving' ? 'btn-ghost' :
+                saveStatus === 'saved' ? 'btn-ghost' :
+                saveStatus === 'error' ? 'btn-danger' :
+                hasUnsavedChanges ? 'btn-primary' : 'btn-ghost'
+              }`}
+              onClick={handleManualSave}
+              disabled={server.loading || saveStatus === 'saving' || (!hasUnsavedChanges && saveStatus !== 'error')}
+              title={hasUnsavedChanges ? 'Du har ugemte ændringer' : ''}
+            >
+              {saveStatus === 'saving' ? 'Gemmer…' :
+              saveStatus === 'saved' ? '✓ Gemt' :
+              saveStatus === 'error' ? '⚠ Fejl ved gem' :
+              hasUnsavedChanges ? '💾 Gem ●' : '💾 Gem'}
+            </button>
+          )}
+
+          {isAuthenticated && mode && isLocked && !server.isAdmin && (
+            <span className="btn-sm btn-ghost" style={{ cursor: 'default', opacity: 0.7 }}>
+              🔒 Bud låst
+            </span>
+          )}
         <button className="btn-ghost btn-sm" onClick={handleSwitchMode}>
           Skift mode
         </button>
