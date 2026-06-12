@@ -4,5 +4,11 @@
       "source": "/((?!api/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/fetch-results",
+      "schedule": "30 6 * * *"
+    }
   ]
 }

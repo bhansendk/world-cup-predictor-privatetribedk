@@ -84,7 +84,70 @@ function predictionToBracketState(prediction) {
   };
 }
 
-function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabChange, onAdvancedTabChange }) {
+const HIT_CARD_STYLE = {
+  background: 'rgba(34, 197, 94, 0.12)',
+  border: '1px solid rgba(74, 222, 128, 0.35)',
+  boxShadow: '0 0 0 1px rgba(34, 197, 94, 0.08) inset'
+};
+
+const HIT_INLINE_STYLE = {
+  color: '#bbf7d0',
+  fontWeight: 700
+};
+
+const HIT_CHIP_STYLE = {
+  background: 'rgba(34, 197, 94, 0.16)',
+  border: '1px solid rgba(74, 222, 128, 0.4)',
+  color: '#dcfce7'
+};
+
+const HIT_BADGE_STYLE = {
+  marginLeft: 8,
+  fontSize: '.8em',
+  color: '#86efac',
+  fontWeight: 700
+};
+
+function hasActualResults(AR) {
+  return !!AR && typeof AR === 'object' && Object.keys(AR).length > 0;
+}
+
+function getActualSimpleResults(AR) {
+  if (!hasActualResults(AR)) return null;
+  return extractSimpleFromAdvanced(AR, AR?.fun || {});
+}
+
+function isSimpleFieldHit(field, simplePrediction, AR) {
+  const actual = getActualSimpleResults(AR);
+  if (!actual || !isFilled(simplePrediction?.[field])) return false;
+  return simplePrediction?.[field] === actual?.[field];
+}
+
+function isGroupPlacementHit(AR, groupKey, place, teamName) {
+  if (!teamName || !AR?.g?.[groupKey]) return false;
+  return AR.g[groupKey]?.[`p${place}`] === teamName;
+}
+
+function isThirdSelectionHit(AR, groupKey) {
+  return Array.isArray(AR?.third) && AR.third.includes(groupKey);
+}
+
+function isFunHit(AR, id, value) {
+  if (!isFilled(value)) return false;
+  return (AR?.fun?.[id] || null) === value;
+}
+
+function isChampionHit(AR, value) {
+  if (!isFilled(value)) return false;
+  return (AR?.final?.fin || null) === value;
+}
+
+function isBronzeHit(AR, value) {
+  if (!isFilled(value)) return false;
+  return (AR?.bronze?.bronze_w || null) === value;
+}
+
+function PredictionCompact({ prediction, mode, AR, mainTab, advancedTab, onMainTabChange, onAdvancedTabChange }) {
   if (!prediction) return null;
 
   const simplePrediction = getSimplePrediction(mode, prediction);
@@ -104,13 +167,20 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
           </div>
         )}
         <div className="pred-compact-title">⚡ Simpel forudsigelse</div>
+        {hasActualResults(AR) && <div className="info-txt" style={{ marginBottom: 10, color: '#86efac' }}>✅ Grøn markering = korrekt forudsigelse</div>}
         <div className="pred-grid">
-          {SIMPLE_FIELDS.map(f => (
-            <div key={f.key} className="pred-item">
-              <div className="pred-item-label">{f.label}</div>
-              <div className="pred-item-value">{compactList(simplePrediction?.[f.key])}</div>
-            </div>
-          ))}
+          {SIMPLE_FIELDS.map(f => {
+            const hit = isSimpleFieldHit(f.key, simplePrediction, AR);
+            return (
+              <div key={f.key} className="pred-item" style={hit ? HIT_CARD_STYLE : undefined}>
+                <div className="pred-item-label">{f.label}</div>
+                <div className="pred-item-value" style={hit ? HIT_INLINE_STYLE : undefined}>
+                  {compactList(simplePrediction?.[f.key])}
+                  {hit && <span style={HIT_BADGE_STYLE}>✓</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -128,6 +198,9 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
     label: q.title.replace(/^\S+\s*/, ''),
     value: compactList(fun?.[q.id])
   }));
+  const showActualHighlights = hasActualResults(AR);
+  const championHit = isChampionHit(AR, bracket?.final?.fin);
+  const bronzeHit = isBronzeHit(AR, bracket?.bronze?.bronze_w);
 
   return (
     <div className="pred-compact">
@@ -141,6 +214,7 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
       </div>
 
       <div className="pred-compact-title">⭐ Fodboldinteresseret forudsigelse</div>
+      {showActualHighlights && <div className="info-txt" style={{ marginBottom: 10, color: '#86efac' }}>✅ Grøn markering = korrekt forudsigelse</div>}
       <div className="pred-subtabs">
         <button type="button" className={`pred-subtab-btn ${advancedTab === 'groups' ? 'active' : ''}`} onClick={onAdvancedTabChange('groups')}>
           Grupper + 3'ere
@@ -156,13 +230,15 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
       {advancedTab === 'groups' && (
         <>
           <div className="pred-grid pred-grid-wide">
-            <div className="pred-item">
+            <div className="pred-item" style={championHit || bronzeHit ? HIT_CARD_STYLE : undefined}>
               <div className="pred-item-label">Topplaceringer</div>
               <div className="pred-item-value">
-                Mester: {compactList(bracket?.final?.fin)} | Bronze: {compactList(bracket?.bronze?.bronze_w)}
+                <span style={championHit ? HIT_INLINE_STYLE : undefined}>Mester: {compactList(bracket?.final?.fin)}{championHit && <span style={HIT_BADGE_STYLE}>✓</span>}</span>
+                {' | '}
+                <span style={bronzeHit ? HIT_INLINE_STYLE : undefined}>Bronze: {compactList(bracket?.bronze?.bronze_w)}{bronzeHit && <span style={HIT_BADGE_STYLE}>✓</span>}</span>
               </div>
             </div>
-            <div className="pred-item">
+            <div className="pred-item" style={(prediction?.third || []).some(groupKey => isThirdSelectionHit(AR, groupKey)) ? HIT_CARD_STYLE : undefined}>
               <div className="pred-item-label">Bedste 3'ere</div>
               <div className="pred-item-value">{compactList(prediction?.third)}</div>
             </div>
@@ -180,12 +256,14 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
                     const place = idx + 1;
                     const isThirdPick = place === 3 && thirdSelected.has(key);
                     const isDirect = place <= 2;
+                    const placementHit = isGroupPlacementHit(AR, key, place, teamName);
                     const cls = 'pred-group-line' + (isDirect ? ' is-direct' : '') + (isThirdPick ? ' is-third-pick' : '');
                     return (
-                      <div key={`${key}-${teamName}-${place}`} className={cls}>
-                        {place}) {teamName}
+                      <div key={`${key}-${teamName}-${place}`} className={cls} style={placementHit ? HIT_CARD_STYLE : undefined}>
+                        <span style={placementHit ? HIT_INLINE_STYLE : undefined}>{place}) {teamName}</span>
+                        {placementHit && <span style={HIT_BADGE_STYLE}>✓</span>}
                         {isDirect && <span className="pred-team-tag">Videre</span>}
-                        {isThirdPick && <span className="pred-team-tag pred-team-tag-third">3'er valgt</span>}
+                        {isThirdPick && <span className="pred-team-tag pred-team-tag-third" style={isThirdSelectionHit(AR, key) ? HIT_CHIP_STYLE : undefined}>3'er valgt</span>}
                       </div>
                     );
                   })}
@@ -197,9 +275,10 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
           <div className="pred-selected-third">
             <div className="pred-item-label">Valgte 8 bedste 3'ere</div>
             <div className="pred-third-chip-wrap">
-              {(prediction?.third || []).map(groupKey => (
-                <span key={`third-${groupKey}`} className="pred-third-chip">{groupKey}</span>
-              ))}
+              {(prediction?.third || []).map(groupKey => {
+                const hit = isThirdSelectionHit(AR, groupKey);
+                return <span key={`third-${groupKey}`} className="pred-third-chip" style={hit ? HIT_CHIP_STYLE : undefined}>{groupKey}{hit ? ' ✓' : ''}</span>;
+              })}
               {(prediction?.third || []).length === 0 && <span className="pred-third-chip pred-third-chip-empty">Ingen valgt</span>}
             </div>
           </div>
@@ -225,12 +304,15 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
         <>
           <div className="pred-section-title">Sjove forudsigelser ({funAnswered}/{FUN_QUESTIONS.length})</div>
           <div className="pred-grid pred-grid-wide">
-            {funRows.map(row => (
-              <div key={row.id} className="pred-item">
-                <div className="pred-item-label">{row.label}</div>
-                <div className="pred-item-value">{row.value}</div>
-              </div>
-            ))}
+            {funRows.map(row => {
+              const hit = isFunHit(AR, row.id, fun?.[row.id]);
+              return (
+                <div key={row.id} className="pred-item" style={hit ? HIT_CARD_STYLE : undefined}>
+                  <div className="pred-item-label">{row.label}</div>
+                  <div className="pred-item-value" style={hit ? HIT_INLINE_STYLE : undefined}>{row.value}{hit && <span style={HIT_BADGE_STYLE}>✓</span>}</div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -282,6 +364,7 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
           <PredictionCompact
             prediction={prediction}
             mode={mode}
+            AR={AR}
             mainTab={mainTab}
             advancedTab={advancedTab}
             onMainTabChange={(tab) => (event) => {
