@@ -435,7 +435,7 @@ export default function App() {
       mode,
       prediction,
       code,
-      server.isAdmin ? server.adminPassword : ''
+      server.adminPassword || ''
     );
     if (res.ok) {
       const resolvedCode = res.editCode || code;
