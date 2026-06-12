@@ -622,6 +622,8 @@ export default function App() {
           setMyEditCode={setMyEditCode}
           onLoadMine={loadMyPrediction}
           isLocked={isLocked}
+          isAdmin={server.isAdmin}
+          adminPassword={server.adminPassword}
         />
       ) : (
         <AdvancedMode

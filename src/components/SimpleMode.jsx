@@ -35,7 +35,10 @@ export default function SimpleMode({
   myEditCode,
   setMyEditCode,
   onLoadMine,
-  isLocked = false
+  isLocked = false,
+  isAdmin = false,
+  adminPassword = ''
+
 }) {
   const [name, setName] = useState(myName || '');
   const [editCode, setEditCode] = useState(myEditCode || DEFAULT_EDIT_CODE);
@@ -64,7 +67,7 @@ export default function SimpleMode({
     }
     const prediction = { ...SIMPLE };
     const currentCode = editCode.trim() || DEFAULT_EDIT_CODE;
-    const res = await onSubmit(name.trim(), 'simple', prediction, currentCode, '', newEditCode.trim());
+    const res = await onSubmit(name.trim(), 'simple', prediction, currentCode, '', isAdmin ? adminPassword : '', newEditCode.trim());
     if (res.ok) {
       setMyName(name.trim());
       if (res.editCode) {
