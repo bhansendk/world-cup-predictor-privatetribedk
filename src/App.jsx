@@ -7,7 +7,12 @@ const VM_KICKOFF = new Date('2026-06-11T19:00:00Z'); // 11. juni 2026 kl. 21:00 
 function useCountdownStr(target) {
   const [diff, setDiff] = useState(() => target - Date.now());
   useEffect(() => {
-    const id = setInterval(() => setDiff(target - Date.now()), 1000);
+    if (target - Date.now() <= 0) return;
+    const id = setInterval(() => {
+      const remaining = target - Date.now();
+      setDiff(remaining);
+      if (remaining <= 0) clearInterval(id);
+    }, 1000);
     return () => clearInterval(id);
   }, [target]);
   if (diff <= 0) return null;

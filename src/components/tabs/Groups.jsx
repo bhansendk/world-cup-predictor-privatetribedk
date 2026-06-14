@@ -6,7 +6,6 @@ function GroupCard({ groupKey, group, gs, onPick }) {
   const filled = ranks.filter(Boolean).length;
 
   const clickTeam = (team) => {
-    if (isLocked) return
     const idx = ranks.indexOf(team);
     if (idx >= 0) {
       // deselect

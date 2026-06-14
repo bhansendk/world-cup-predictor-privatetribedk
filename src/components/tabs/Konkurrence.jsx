@@ -122,7 +122,7 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
   const funAnswered = FUN_QUESTIONS.filter(q => isFilled(fun[q.id])).length;
   const groupKeys = Object.keys(GROUPS);
   const thirdSelected = new Set(prediction?.third || []);
-  const bracketState = predictionToBracketState(prediction);
+  const bracketState = useMemo(() => predictionToBracketState(prediction), [prediction]);
   const funRows = FUN_QUESTIONS.map(q => ({
     id: q.id,
     label: q.title.replace(/^\S+\s*/, ''),
@@ -244,22 +244,18 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
   const [advancedTab, setAdvancedTab] = useState('groups');
   const { name, mode, prediction } = colleague;
   const isSimple = mode === 'simple';
-  const simplePrediction = getSimplePrediction(mode, prediction);
+  const simplePrediction = useMemo(() => getSimplePrediction(mode, prediction), [mode, prediction]);
 
-  let pts = 0, breakdown = [];
-  if (AR && Object.keys(AR).length > 0 && prediction) {
-    if (leaderboardView === 'simple') {
-      ({ pts, breakdown } = calcSimpleScore(simplePrediction, AR));
-    } else if (leaderboardView === 'advanced') {
-      if (!isSimple) {
-        ({ pts, breakdown } = calcScore(prediction.g, prediction.bracket, prediction.fun, AR));
-      }
-    } else if (isSimple) {
-      ({ pts, breakdown } = calcSimpleScore(prediction, AR));
-    } else {
-      ({ pts, breakdown } = calcScore(prediction.g, prediction.bracket, prediction.fun, AR));
+  const { pts, breakdown } = useMemo(() => {
+    if (!AR || Object.keys(AR).length === 0 || !prediction) return { pts: 0, breakdown: [] };
+    if (leaderboardView === 'simple') return calcSimpleScore(simplePrediction, AR);
+    if (leaderboardView === 'advanced') {
+      if (isSimple) return { pts: -1, breakdown: [] };
+      return calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
     }
-  }
+    if (isSimple) return calcSimpleScore(prediction, AR);
+    return calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
+  }, [AR, prediction, simplePrediction, leaderboardView, isSimple]);
 
   const medals = ['🥇','🥈','🥉'];
 
