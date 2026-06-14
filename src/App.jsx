@@ -129,10 +129,9 @@ export default function App() {
       name: myName.trim(),
       mode,
       code,
-      prediction: buildCurrentPrediction(),
-      isAdmin: server.isAdmin
+      prediction: buildCurrentPrediction()
     });
-  }, [myName, mode, myEditCode, buildCurrentPrediction, server.isAdmin]);
+  }, [myName, mode, myEditCode, buildCurrentPrediction]);
 
   useEffect(() => {
     if (!shouldWarnOnClose) return;
@@ -310,8 +309,7 @@ export default function App() {
       name: entry.name || name.trim(),
       mode: entry.mode,
       code: editCode.trim().toUpperCase(),
-      prediction: loadedPrediction,
-      isAdmin: false
+      prediction: loadedPrediction
     });
     setHasUnsavedChanges(false);
     setSaveStatus('saved');
@@ -468,14 +466,13 @@ export default function App() {
     myName,
     myEditCode,
     buildSnapshot,
-    server.isAdmin,
   ]);
 
   useEffect(() => {
     if (isAuthenticated && mode) return;
     setHasUnsavedChanges(false);
     setSaveStatus('idle');
-  }, [isAuthenticated, mode, server.isAdmin]);
+  }, [isAuthenticated, mode]);
 
   if (!isAuthenticated) {
     return (
