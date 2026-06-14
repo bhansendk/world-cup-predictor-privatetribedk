@@ -12,7 +12,6 @@ function GroupCard({ groupKey, group, gs, onPick, isLocked = false }) {
       // deselect
       const newRanks = [...ranks];
       newRanks[idx] = null;
-      // compact
       const compact = newRanks.filter(Boolean);
       onPick(groupKey, { p1: compact[0]||null, p2: compact[1]||null, p3: compact[2]||null });
     } else if (filled < 3) {
@@ -20,6 +19,9 @@ function GroupCard({ groupKey, group, gs, onPick, isLocked = false }) {
       const slot = newRanks.findIndex(r => !r);
       newRanks[slot] = team;
       onPick(groupKey, { p1: newRanks[0]||null, p2: newRanks[1]||null, p3: newRanks[2]||null });
+    } else {
+      // Group full — replace p3 directly
+      onPick(groupKey, { p1: ranks[0], p2: ranks[1], p3: team });
     }
   };
 
@@ -35,7 +37,7 @@ function GroupCard({ groupKey, group, gs, onPick, isLocked = false }) {
           if (rank === 0)    { cls += ' s1'; badge = ' 🥇'; }
           else if (rank === 1) { cls += ' s2'; badge = ' 🥈'; }
           else if (rank === 2) { cls += ' s3'; badge = ' 🥉'; }
-          else if (filled >= 3) cls += ' dimmed';
+          else if (filled >= 3 && isLocked) cls += ' dimmed';
           return (
             <div key={team} className={cls} onClick={() => clickTeam(team)}>
               <FlagSpan team={team} />{team}{badge}

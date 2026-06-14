@@ -336,12 +336,14 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
                     if (rank === 0) { cls += ' s1'; badge = ' 🥇'; }
                     else if (rank === 1) { cls += ' s2'; badge = ' 🥈'; }
                     else if (rank === 2) { cls += ' s3'; badge = ' 🥉'; }
-                    else if (filled >= 3) cls += ' dimmed';
+                    // Never dim in admin editor — allow direct replacement
                     const clickRank = rank >= 0
                       ? () => setGroupResult(key, ['p1','p2','p3'][rank], '')
                       : () => {
                           const slot = !gs.p1 ? 'p1' : !gs.p2 ? 'p2' : !gs.p3 ? 'p3' : null;
+                          // If group is full, replace p3 directly
                           if (slot) setGroupResult(key, slot, team);
+                          else setGroupResult(key, 'p3', team);
                         };
                     return (
                       <div key={team} className={cls} onClick={clickRank}>
