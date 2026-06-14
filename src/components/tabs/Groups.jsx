@@ -1,11 +1,12 @@
 import { GROUPS } from '../../data/wc2026.js';
 import { FlagSpan } from '../FormFields.jsx';
 
-function GroupCard({ groupKey, group, gs, onPick }) {
+function GroupCard({ groupKey, group, gs, onPick, isLocked = false }) {
   const ranks = [gs.p1 || null, gs.p2 || null, gs.p3 || null];
   const filled = ranks.filter(Boolean).length;
 
   const clickTeam = (team) => {
+    if (isLocked) return;
     const idx = ranks.indexOf(team);
     if (idx >= 0) {
       // deselect
