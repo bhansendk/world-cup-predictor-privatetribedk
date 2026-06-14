@@ -430,8 +430,12 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
 }
 
 export default function ResultaterTab({ serverData, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading, setS, setFUN, setSIMPLE }) {
-  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(isAdmin);
   const colleagues = serverData?.colleagues || [];
+
+  useEffect(() => {
+    if (isAdmin) setAdminOpen(true);
+  }, [isAdmin]);
 
   const handleLoadPrediction = (parsed) => {
     if (parsed.mode === 'simple') {
