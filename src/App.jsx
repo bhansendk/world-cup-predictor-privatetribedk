@@ -430,14 +430,12 @@ export default function App() {
     const prediction = buildCurrentPrediction();
     setSaveStatus('saving');
     clearTimeout(saveStatusTimerRef.current);
-    // Only pass admin password if logged in as admin for admin saves, not for regular user saves
-    const adminPwd = '';
     const res = await server.autosavePrediction(
       myName.trim(),
       mode,
       prediction,
       code,
-      adminPwd
+      server.adminPassword || ''
     );
     if (res.ok) {
       const resolvedCode = res.editCode || code;
@@ -456,7 +454,7 @@ export default function App() {
   }, [myName, mode, myEditCode, buildCurrentPrediction, server, setMyEditCode]);
 
   useEffect(() => {
-    if (!isAuthenticated || server.isAdmin || !mode || !myName?.trim()) return;
+    if (!isAuthenticated || !mode || !myName?.trim()) return;
     const currentSnapshot = buildSnapshot();
     const dirty = !!currentSnapshot && currentSnapshot !== autosaveSnapshotRef.current;
     setHasUnsavedChanges(dirty);
@@ -474,7 +472,7 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (isAuthenticated && mode && !server.isAdmin) return;
+    if (isAuthenticated && mode) return;
     setHasUnsavedChanges(false);
     setSaveStatus('idle');
   }, [isAuthenticated, mode, server.isAdmin]);
