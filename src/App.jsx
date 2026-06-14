@@ -430,12 +430,14 @@ export default function App() {
     const prediction = buildCurrentPrediction();
     setSaveStatus('saving');
     clearTimeout(saveStatusTimerRef.current);
+    // Only pass admin password if logged in as admin for admin saves, not for regular user saves
+    const adminPwd = '';
     const res = await server.autosavePrediction(
       myName.trim(),
       mode,
       prediction,
       code,
-      server.adminPassword || ''
+      adminPwd
     );
     if (res.ok) {
       const resolvedCode = res.editCode || code;
