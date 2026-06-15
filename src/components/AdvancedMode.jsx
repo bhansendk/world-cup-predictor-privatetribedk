@@ -5,6 +5,7 @@ import BracketTab from './tabs/Bracket.jsx';
 import FunTipsTab from './tabs/FunTips.jsx';
 import KonkurrenceTab from './tabs/Konkurrence.jsx';
 import ResultaterTab from './tabs/Resultater.jsx';
+import StatsTab from './tabs/Stats.jsx';
 import { COMBO } from '../data/combo.js';
 import { FUN_QUESTIONS, GROUPS, QF_PAIRS, R16_PAIRS, R32, SF_PAIRS } from '../data/wc2026.js';
 import { extractSimpleFromAdvanced, resolveSlot } from '../lib/scoring.js';
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'bracket',   label: '🏆 Bracket' },
   { id: 'fun',       label: '🎯 Sjove tips' },
   { id: 'ranking',   label: '📊 Stilling' },
+  { id: 'stats',     label: '📈 Statistik' },
   { id: 'results',   label: '✅ Resultater' },
 ];
 
@@ -196,6 +198,9 @@ export default function AdvancedMode(props) {
           adminLogout={adminLogout}
           isAdmin={isAdmin}
         />
+      )}
+      {tab === 'stats' && (
+        <StatsTab serverData={serverData} />
       )}
       {tab === 'results' && (
         <ResultaterTab
