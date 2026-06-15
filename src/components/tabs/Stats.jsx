@@ -16,6 +16,36 @@ import {
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title);
 
+const CHART_TEXT_COLOR = '#e2e8f0';
+
+const baseChartOptions = {
+  plugins: {
+    legend: { labels: { color: CHART_TEXT_COLOR } },
+    title: { color: CHART_TEXT_COLOR },
+    tooltip: { enabled: true }
+  },
+  scales: {
+    x: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } },
+    y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } }
+  }
+};
+
+function makeBarOptions(overrides = {}) {
+  return {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    plugins: {
+      ...baseChartOptions.plugins,
+      ...(overrides.plugins || {})
+    },
+    scales: {
+      x: { beginAtZero: true, ticks: { precision: 0, color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } },
+      y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } }
+    },
+    ...overrides
+  };
+}
+
 function pct(count, total) {
   if (!total) return '0%';
   return Math.round((count / total) * 100) + '%';
@@ -213,7 +243,9 @@ export default function StatsTab({ serverData }) {
                 labels: champList.map(c => c[0]),
                 datasets: [{ data: champList.map(c => c[1]), backgroundColor: champList.map((_, i) => `hsl(${(i*50)%360} 70% 50%)`) }]
               }} options={{
+                ...baseChartOptions,
                 plugins: {
+                  ...baseChartOptions.plugins,
                   tooltip: {
                     callbacks: {
                       label: (ctx) => {
@@ -225,7 +257,7 @@ export default function StatsTab({ serverData }) {
                       }
                     }
                   },
-                  legend: { position: 'bottom' }
+                  legend: { position: 'bottom', labels: { color: CHART_TEXT_COLOR } }
                 }
               }} />
             </div>
@@ -299,7 +331,7 @@ export default function StatsTab({ serverData }) {
               <div key={gk} className="chart-card">
                 <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 8 }}>{g.name}</div>
                 <div style={{ height: 120 }}>
-                  <Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={{ indexAxis: 'y', maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }} />
+                  <Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={makeBarOptions({ plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } })} />
                 </div>
               </div>
             );
