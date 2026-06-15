@@ -21,6 +21,11 @@ function pct(count, total) {
   return Math.round((count / total) * 100) + '%';
 }
 
+function pctNum(count, total) {
+  if (!total) return 0;
+  return Math.round((count / total) * 100);
+}
+
 function groupBy(arr, keyFn) {
   const map = new Map();
   arr.forEach(item => {
@@ -96,43 +101,26 @@ export default function StatsTab({ serverData }) {
     funDistributions[q.id] = groupBy(entries, e => (e.prediction?.fun && e.prediction.fun[q.id]) || (e.prediction && e.prediction[q.id]) || null);
   });
 
-  // Best predictions (if results available)
   const results = serverData?.results || null;
-  let best = [];
-  if (results) {
-    best = entries.map(e => {
-      let pts = 0;
-      try {
-        if (e.mode === 'advanced') {
-          pts = (calcScore(e.prediction?.g || e.prediction?.g, e.prediction?.bracket || e.prediction, e.prediction?.fun || {}, results)?.pts) || 0;
-        } else {
-          pts = (calcSimpleScore(e.prediction || {}, results)?.pts) || 0;
-        }
-      } catch (err) {
-        pts = 0;
-      }
-      return { name: e.name || 'Anonym', pts, submittedAt: e.submittedAt || '' };
-    }).sort((a, b) => b.pts - a.pts).slice(0, 20);
-  }
 
   return (
     <div className="tab-content">
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
         <div className="section-card stat-tile">
-          <div style={{ color: '#93c5fd', fontWeight: 700 }}>Deltagere</div>
-          <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>{total}</div>
+          <div className="stat-label">Deltagere</div>
+          <div className="stat-value">{total}</div>
         </div>
         <div className="section-card stat-tile">
-          <div style={{ color: '#93c5fd', fontWeight: 700 }}>Mest brugt mode</div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>{modes.simple >= modes.advanced ? 'Simple' : 'Advanced'}</div>
+          <div className="stat-label">Mest brugt mode</div>
+          <div className="stat-value">{modes.simple >= modes.advanced ? 'Simple' : 'Advanced'}</div>
         </div>
         <div className="section-card stat-tile">
-          <div style={{ color: '#93c5fd', fontWeight: 700 }}>Top champion</div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>{topChampion ? `${topChampion.team} (${pct(topChampion.count, total)})` : '—'}</div>
+          <div className="stat-label">Top champion</div>
+          <div className="stat-value">{topChampion ? `${topChampion.team} (${pct(topChampion.count, total)})` : '—'}</div>
         </div>
         <div className="section-card stat-tile">
-          <div style={{ color: '#93c5fd', fontWeight: 700 }}>Gennemsnitlige point</div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>{avgPoints !== null ? avgPoints : 'N/A'}</div>
+          <div className="stat-label">Gennemsnitlige point</div>
+          <div className="stat-value">{avgPoints !== null ? avgPoints : 'N/A'}</div>
         </div>
       </div>
       <div className="section-header">
@@ -150,19 +138,42 @@ export default function StatsTab({ serverData }) {
       <div className="section-card">
         <h3>Favorit til mesterskabet</h3>
         {champList.length === 0 ? <p>Ingen data endnu.</p> : (
-          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div style={{ width: 320 }}>
+          <div className="chart-compact">
+            <div className="chart-wrap">
               <Pie data={{
                 labels: champList.map(c => c[0]),
                 datasets: [{ data: champList.map(c => c[1]), backgroundColor: champList.map((_, i) => `hsl(${(i*50)%360} 70% 50%)`) }]
+              }} options={{
+                plugins: {
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => {
+                        const label = ctx.label || '';
+                        const value = ctx.parsed || 0;
+                        const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0;
+                        const percent = sum ? Math.round((value/sum)*100) : 0;
+                        return `${label}: ${value} (${percent}%)`;
+                      }
+                    }
+                  },
+                  legend: { position: 'bottom' }
+                }
               }} />
             </div>
             <div style={{ minWidth: 260 }}>
               <table className="simple-table">
-                <thead><tr><th>Hold</th><th>Antal</th><th>%</th></tr></thead>
+                <thead><tr><th>Hold</th><th>Antal</th><th style={{width:120}}>%</th></tr></thead>
                 <tbody>
                   {champList.map(([team, cnt]) => (
-                    <tr key={team}><td>{team}</td><td>{cnt}</td><td>{pct(cnt, total)}</td></tr>
+                    <tr key={team} className="champ-row">
+                      <td className="champ-name">{team}</td>
+                      <td style={{width:60}}>{cnt}</td>
+                      <td>
+                          <div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}>
+                            <div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} />
+                          </div>
+                        </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -174,26 +185,36 @@ export default function StatsTab({ serverData }) {
       <div className="section-card">
         <h3>Topscorer-fordeling</h3>
         {topScorerList.length === 0 ? <p>Ingen data.</p> : (
-          <ol>
+          <div>
             {topScorerList.slice(0, 10).map(([player, cnt]) => (
-              <li key={player}>{player} — {cnt} ({pct(cnt, total)})</li>
+              <div key={player} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                <div>{player}</div>
+                <div style={{ minWidth: 140 }}>
+                  <div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div>
+                </div>
+                <div style={{ width: 56, textAlign: 'right' }}>{cnt} ({pct(cnt, total)})</div>
+              </div>
             ))}
-          </ol>
+          </div>
         )}
       </div>
 
       <div className="section-card">
         <h3>Sjove tips (udvalgte)</h3>
-        {FUN_QUESTIONS.slice(0, 4).map(q => (
-          <div key={q.id} style={{ marginBottom: 12 }}>
-            <strong>{q.title}</strong>
-            <div style={{ marginTop: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+          {FUN_QUESTIONS.slice(0, 4).map(q => (
+            <div key={q.id} style={{ padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+              <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 6 }}>{q.title}</div>
               {Array.from(funDistributions[q.id].entries()).sort((a,b)=>b[1]-a[1]).map(([val, cnt]) => (
-                <div key={val} style={{ fontSize: 14 }}>{val || 'Ingen valg'} — {cnt} ({pct(cnt, total)})</div>
+                <div key={val} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div style={{ flex: 1, color: '#e2e8f0' }}>{val || 'Ingen valg'}</div>
+                  <div style={{ width: 130 }}><div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
+                  <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
+                </div>
               ))}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Per-day submission dates removed for privacy */}
@@ -209,7 +230,7 @@ export default function StatsTab({ serverData }) {
               <div key={gk} className="chart-card">
                 <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 8 }}>{g.name}</div>
                 <div style={{ height: 120 }}>
-                  <Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={{ indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }} />
+                  <Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={{ indexAxis: 'y', maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }} />
                 </div>
               </div>
             );
@@ -217,21 +238,7 @@ export default function StatsTab({ serverData }) {
         </div>
       </div>
 
-      {results && (
-        <div className="section-card">
-          <h3>Top-forudsigelser (efter point)</h3>
-          {best.length === 0 ? <p>Ingen resultater/points.</p> : (
-            <table className="simple-table">
-              <thead><tr><th>Navn</th><th>Point</th></tr></thead>
-              <tbody>
-                {best.map((b, i) => (
-                  <tr key={i}><td>{b.name}</td><td>{b.pts}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {/* Top-forudsigelser fjernet */}
     </div>
   );
 }
