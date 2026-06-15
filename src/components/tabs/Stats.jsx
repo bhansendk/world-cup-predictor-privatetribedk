@@ -1,20 +1,9 @@
 import { extractSimpleFromAdvanced, calcScore, calcSimpleScore } from '../../lib/scoring.js';
 import { FUN_QUESTIONS, GROUPS } from '../../data/wc2026.js';
-import { Pie, Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-  Title
-} from 'chart.js';
+import React, { useEffect, useState } from 'react';
 
-ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title);
+// Dynamically load Chart.js + react-chartjs-2 on client only to avoid SSR/build errors
+const isBrowser = typeof window !== 'undefined';
 
 const CHART_TEXT_COLOR = '#e2e8f0';
 
@@ -66,6 +55,28 @@ function groupBy(arr, keyFn) {
 }
 
 export default function StatsTab({ serverData }) {
+  const [Charts, setCharts] = useState(null);
+
+  useEffect(() => {
+    if (!isBrowser) return;
+    let cancelled = false;
+    Promise.all([
+      import('react-chartjs-2'),
+      import('chart.js')
+    ]).then(([rc, cj]) => {
+      try {
+        const ChartJS = cj.Chart || cj.default || cj;
+        const { ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title } = cj;
+        if (ChartJS && ChartJS.register) {
+          ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title);
+        }
+      } catch (e) {
+        // ignore registration errors
+      }
+      if (!cancelled) setCharts({ Pie: rc.Pie, Bar: rc.Bar, Line: rc.Line });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const entries = Array.isArray(serverData?.colleagues) ? serverData.colleagues : [];
   const total = entries.length;
 
@@ -239,27 +250,31 @@ export default function StatsTab({ serverData }) {
         {champList.length === 0 ? <p>Ingen data endnu.</p> : (
           <div className="chart-compact">
             <div className="chart-wrap">
-              <Pie data={{
-                labels: champList.map(c => c[0]),
-                datasets: [{ data: champList.map(c => c[1]), backgroundColor: champList.map((_, i) => `hsl(${(i*50)%360} 70% 50%)`) }]
-              }} options={{
-                ...baseChartOptions,
-                plugins: {
-                  ...baseChartOptions.plugins,
-                  tooltip: {
-                    callbacks: {
-                      label: (ctx) => {
-                        const label = ctx.label || '';
-                        const value = ctx.parsed || 0;
-                        const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0;
-                        const percent = sum ? Math.round((value/sum)*100) : 0;
-                        return `${label}: ${value} (${percent}%)`;
+              {Charts ? (
+                <Charts.Pie data={{
+                  labels: champList.map(c => c[0]),
+                  datasets: [{ data: champList.map(c => c[1]), backgroundColor: champList.map((_, i) => `hsl(${(i*50)%360} 70% 50%)`) }]
+                }} options={{
+                  ...baseChartOptions,
+                  plugins: {
+                    ...baseChartOptions.plugins,
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => {
+                          const label = ctx.label || '';
+                          const value = ctx.parsed || 0;
+                          const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0;
+                          const percent = sum ? Math.round((value/sum)*100) : 0;
+                          return `${label}: ${value} (${percent}%)`;
+                        }
                       }
-                    }
-                  },
-                  legend: { position: 'bottom', labels: { color: CHART_TEXT_COLOR } }
-                }
-              }} />
+                    },
+                    legend: { position: 'bottom', labels: { color: CHART_TEXT_COLOR } }
+                  }
+                }} />
+              ) : (
+                <div className="chart-wrap" style={{display:'flex',alignItems:'center',justifyContent:'center',height:320}}>Diagram indlæses…</div>
+              )}
             </div>
             <div style={{ minWidth: 260 }}>
               <table className="simple-table">
@@ -331,7 +346,11 @@ export default function StatsTab({ serverData }) {
               <div key={gk} className="chart-card">
                 <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 8 }}>{g.name}</div>
                 <div style={{ height: 120 }}>
-                  <Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={makeBarOptions({ plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } })} />
+                  {Charts ? (
+                    <Charts.Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={makeBarOptions({ plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } })} />
+                  ) : (
+                    <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center'}}>Diagram indlæses…</div>
+                  )}
                 </div>
               </div>
             );
