@@ -103,6 +103,75 @@ export default function StatsTab({ serverData }) {
 
   const results = serverData?.results || null;
 
+  // Additional "rare correct" statistics when results are available
+  let rareCorrect = null;
+  if (results) {
+    try {
+      const actual = extractSimpleFromAdvanced(results.bracket || results, results.fun || {});
+
+      // counts of predictions already computed for champions and fun questions
+      // reuse champCounts and funDistributions for popularity metrics
+      const popularity = {
+        top1: champCounts, // Map team -> count
+        ...Object.fromEntries(FUN_QUESTIONS.map(q => [q.id, funDistributions[q.id]]))
+      };
+
+      // For each participant, compute which of the tracked fields they got correct and a rarity score
+      const candidateFields = ['top1', 'top2', 'top3', 'top4', ...FUN_QUESTIONS.filter(f=>['topscorer','golden_ball','most_yellow','most_goals_team'].includes(f.id)).map(f=>f.id)];
+
+      const perPerson = entries.map(e => {
+        const name = e.name || e.displayName || e.id || 'Anonym';
+        const mode = e.mode || 'simple';
+        const simple = mode === 'advanced'
+          ? extractSimpleFromAdvanced(e.prediction?.bracket || e.prediction || {}, e.prediction?.fun || {})
+          : (e.prediction || {});
+        let correct = [];
+        let raritySum = 0;
+        candidateFields.forEach(f => {
+          const picked = simple[f];
+          const actualVal = actual[f];
+          if (!picked || !actualVal) return;
+          if (picked === actualVal) {
+            correct.push(f);
+            const popMap = popularity[f] || new Map();
+            const pop = popMap.get(picked) || 1;
+            raritySum += 1 / pop;
+          }
+        });
+        return { name, correct, raritySum, correctCount: correct.length };
+      });
+
+      // rank by raritySum then by correctCount
+      perPerson.sort((a,b) => b.raritySum - a.raritySum || b.correctCount - a.correctCount);
+
+      // also list rare correct predictions (predicted correctly but low popularity)
+      const rareItems = [];
+      // check champion and the selected fun questions
+      const checkFields = ['top1', 'topscorer', 'golden_ball', 'most_yellow', 'most_goals_team'];
+      checkFields.forEach(f => {
+        const actualVal = actual[f];
+        if (!actualVal) return;
+        const popMap = popularity[f] || new Map();
+        const pop = popMap.get(actualVal) || 0;
+        if (pop > 0 && pop <= Math.max(3, Math.round(total * 0.05))) { // consider rare if <= max(3,5% of entries)
+          // find who had it
+          const holders = entries.filter(e => {
+            const mode = e.mode || 'simple';
+            const simple = mode === 'advanced'
+              ? extractSimpleFromAdvanced(e.prediction?.bracket || e.prediction || {}, e.prediction?.fun || {})
+              : (e.prediction || {});
+            return simple[f] === actualVal;
+          }).map(e => e.name || e.displayName || e.id || 'Anonym');
+          rareItems.push({ field: f, value: actualVal, count: pop, holders });
+        }
+      });
+
+      rareCorrect = { perPerson, rareItems };
+    } catch (err) {
+      rareCorrect = null;
+    }
+  }
+
   return (
     <div className="tab-content">
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
@@ -239,6 +308,34 @@ export default function StatsTab({ serverData }) {
       </div>
 
       {/* Top-forudsigelser fjernet */}
+      {rareCorrect && (
+        <div className="section-card">
+          <h3>Sjældne korrekte forudsigelser</h3>
+          {rareCorrect.rareItems.length === 0 ? (
+            <p>Ingen særligt sjældne korrekte forudsigelser fundet (eller for få deltagere).</p>
+          ) : (
+            <div>
+              {rareCorrect.rareItems.map(it => (
+                <div key={it.field} style={{ marginBottom: 10 }}>
+                  <div style={{ fontWeight: 700, color: '#fef3c7' }}>{it.field} — {it.value}</div>
+                  <div style={{ color: '#cbd5e1', fontSize: 14 }}>Kun {it.count} forudsigelser havde dette; indehaver(e): {it.holders.join(', ')}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Top personer med mest sjældne korrekte forudsigelser</div>
+            <ol>
+              {rareCorrect.perPerson.slice(0,10).filter(p=>p.correctCount>0).map(p => (
+                <li key={p.name} style={{ marginBottom: 6 }}>
+                  <strong style={{ color: '#e2e8f0' }}>{p.name}</strong>: {p.correctCount} korrekte ({p.raritySum.toFixed(2)} sjældenhed)
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

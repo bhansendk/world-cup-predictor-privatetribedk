@@ -172,6 +172,10 @@ a.lb-name-link:hover{color:#3b82f6}
 .section-header p { color: #94a3b8; font-size: .9em; }
 .section-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
 .section-card h2, .section-card h3 { color: #3b82f6; margin-bottom: 16px; }
+/* Make body text inside stats/section cards more readable on dark background */
+.section-card, .section-card p, .section-card div, .section-card td, .section-card th, .chart-card { color: #e2e8f0; }
+.section-card .simple-table tbody td { color: #e2e8f0; }
+.section-header p { color: #e2e8f0; }
 .stats-grid { display: grid; gap: 12px; }
 .stat-tile { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 16px; background: linear-gradient(180deg,#0b1220,#111827); border: 1px solid rgba(59,130,246,.06); box-shadow: 0 8px 22px rgba(2,6,23,.55); border-radius: 10px; }
 .stat-label { color: #93c5fd; font-weight: 700; font-size: .9em; }
@@ -181,7 +185,7 @@ a.lb-name-link:hover{color:#3b82f6}
 .simple-table thead th { color: #93c5fd; font-weight: 700; border-bottom: 1px solid #273449; }
 .simple-table tbody tr:hover { background: rgba(59,130,246,0.03); }
 .mini-bar { height: 10px; background: linear-gradient(90deg,#3b82f6,#06b6d4); border-radius: 999px; }
-.mini-bar-bg { height: 10px; background: rgba(255,255,255,0.03); border-radius: 999px; overflow: hidden; }
+.mini-bar-bg { height: 10px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; }
 .champ-row { display: flex; align-items: center; gap: 12px; }
 .champ-name { min-width: 120px; }
 .chart-compact { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap }
