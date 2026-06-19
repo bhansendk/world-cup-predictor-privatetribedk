@@ -56,6 +56,7 @@ function groupBy(arr, keyFn) {
 
 export default function StatsTab({ serverData }) {
   const [Charts, setCharts] = useState(null);
+  const [hovered, setHovered] = useState(null);
 
   useEffect(() => {
     if (!isBrowser) return;
@@ -85,6 +86,7 @@ export default function StatsTab({ serverData }) {
   // Champion distribution (combine simple and advanced)
   const champCounts = new Map();
   const topScorerCounts = new Map();
+  const funHolders = {};
   const modes = { simple: 0, advanced: 0 };
 
   entries.forEach(e => {
@@ -103,6 +105,22 @@ export default function StatsTab({ serverData }) {
     // Topscorer (fun question)
     const ts = (e.prediction?.topscorer) || (e.prediction?.fun?.topscorer) || null;
     if (ts) topScorerCounts.set(ts, (topScorerCounts.get(ts) || 0) + 1);
+
+    // Fun holders: who guessed which value for each fun question
+    FUN_QUESTIONS.forEach(q => {
+      const val = (e.prediction?.fun && e.prediction.fun[q.id]) || (e.prediction && e.prediction[q.id]) || null;
+      if (!funHolders[q.id]) funHolders[q.id] = new Map();
+      const name = e.name || e.displayName || e.id || 'Anonym';
+      if (val) {
+        const arr = funHolders[q.id].get(val) || [];
+        arr.push(name);
+        funHolders[q.id].set(val, arr);
+      } else {
+        const arr = funHolders[q.id].get('—') || [];
+        arr.push(name);
+        funHolders[q.id].set('—', arr);
+      }
+    });
 
     // don't store submission dates here (privacy)
   });
@@ -316,18 +334,28 @@ export default function StatsTab({ serverData }) {
       </div>
 
       <div className="section-card">
-        <h3>Sjove tips (udvalgte)</h3>
+        <h3>Sjove tips</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-          {FUN_QUESTIONS.slice(0, 4).map(q => (
-            <div key={q.id} style={{ padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+          {FUN_QUESTIONS.map(q => (
+            <div key={q.id} style={{ padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8, position: 'relative' }}>
               <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 6 }}>{q.title}</div>
-              {Array.from(funDistributions[q.id].entries()).sort((a,b)=>b[1]-a[1]).map(([val, cnt]) => (
-                <div key={val} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <div style={{ flex: 1, color: '#e2e8f0' }}>{val || 'Ingen valg'}</div>
-                  <div style={{ width: 130 }}><div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
-                  <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
-                </div>
-              ))}
+              {Array.from((funDistributions[q.id] || new Map()).entries()).sort((a,b)=>b[1]-a[1]).map(([val, cnt]) => {
+                const valKey = String(val ?? '—');
+                const holders = (funHolders[q.id] && (funHolders[q.id].get(val) || funHolders[q.id].get('—'))) || [];
+                return (
+                  <div key={valKey} onMouseEnter={() => setHovered(`${q.id}||${valKey}`)} onMouseLeave={() => setHovered(null)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <div style={{ flex: 1, color: '#e2e8f0' }}>{val || 'Ingen valg'}</div>
+                    <div style={{ width: 130 }}><div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
+                    <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
+                    {hovered === `${q.id}||${valKey}` && (
+                      <div style={{ position: 'absolute', background: 'rgba(0,0,0,0.7)', color: '#e2e8f0', padding: '8px 10px', borderRadius: 8, maxWidth: 320, zIndex: 40, boxShadow: '0 6px 20px rgba(0,0,0,0.6)' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Gættet af:</div>
+                        <div style={{ fontSize: 12, color: '#cbd5e1' }}>{holders.join(', ') || 'Ingen'}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
