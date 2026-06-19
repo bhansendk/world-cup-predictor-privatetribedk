@@ -83,6 +83,23 @@ export default function StatsTab({ serverData }) {
     );
   }
 
+  // Render a hover popover with full-holder list (shown only on parent hover)
+  function renderHoldersPopover(holders) {
+    if (!holders || holders.length === 0) return null;
+    return (
+      <div className="holders-popover" role="status" aria-hidden style={{ display: 'none' }}>
+        <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>{holders.length} personer</div>
+        <div style={{ maxHeight: 160, overflowY: 'auto' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {holders.map(h => (
+              <li key={h} style={{ padding: '4px 0', color: '#e2e8f0', fontSize: 13 }}>{h}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   
 
   // Champion distribution (combine simple and advanced) — memoized
@@ -285,9 +302,9 @@ export default function StatsTab({ serverData }) {
                     return (
                       <tr key={team} className="champ-row">
                           <td className="champ-name">
-                            <div className="hover-reveal" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="hover-reveal" style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                               <div>{team}</div>
-                              {renderHoldersPreview(holders)}
+                              {renderHoldersPopover(holders)}
                             </div>
                           </td>
                         <td style={{width:60}}>{cnt}</td>
@@ -315,9 +332,9 @@ export default function StatsTab({ serverData }) {
               const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
               return (
                 <div key={player} title={holders.join(', ')} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                  <div className="hover-reveal" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="hover-reveal" style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                     <div>{player}</div>
-                    {renderHoldersPreview(holders)}
+                    {renderHoldersPopover(holders)}
                   </div>
                   <div style={{ minWidth: 140 }}>
                     <div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div>
@@ -341,9 +358,9 @@ export default function StatsTab({ serverData }) {
                 const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                 return (
                   <div key={val} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <div className="hover-reveal" style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="hover-reveal" style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                         <div>{val || 'Ingen valg'}</div>
-                        {renderHoldersPreview(holders)}
+                        {renderHoldersPopover(holders)}
                       </div>
                       <div style={{ width: 130 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
                       <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
@@ -377,7 +394,7 @@ export default function StatsTab({ serverData }) {
                         const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                         return (
                           <div key={t} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <div className="hover-reveal" style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>{t}{renderHoldersPreview(holders)}</div>
+                            <div className="hover-reveal" style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>{t}{renderHoldersPopover(holders)}</div>
                             <div style={{ width: 110 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
                             <div style={{ width: 44, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
                           </div>
@@ -401,7 +418,7 @@ export default function StatsTab({ serverData }) {
               {rareCorrect.rareItems.map(it => (
                 <div key={it.field} style={{ marginBottom: 10 }}>
                   <div style={{ fontWeight: 700, color: '#fef3c7' }}>{it.field} — {it.value}</div>
-                  <div style={{ color: '#cbd5e1', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center' }}>Kun {it.count} forudsigelser havde dette; <span className="hover-reveal">{renderHoldersPreview(it.holders)}</span></div>
+                  <div style={{ color: '#cbd5e1', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center' }}>Kun {it.count} forudsigelser havde dette; <span className="hover-reveal" style={{ position: 'relative' }}>{renderHoldersPopover(it.holders)}</span></div>
                 </div>
               ))}
             </div>

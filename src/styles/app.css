@@ -194,6 +194,24 @@ a.lb-name-link:hover{color:#3b82f6}
 /* Hover reveal for holders preview: hidden by default, shown when parent hovered */
 .hover-reveal .holders-preview { display: none; }
 .hover-reveal:hover .holders-preview { display: flex; }
+
+/* Popover with full names shown on hover */
+.holders-popover {
+  display: none; /* default hidden; shown when parent .hover-reveal is hovered */
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  background: #0b1220;
+  border: 1px solid #334155;
+  padding: 10px;
+  border-radius: 8px;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(2,6,23,.6);
+}
+.hover-reveal:hover .holders-popover { display: block; }
+.holders-popover ul { max-height: 160px; overflow-y: auto; }
+.holders-popover li { padding: 4px 6px; }
 @media (max-width: 820px) {
   .chart-compact .chart-wrap { width: 100%; }
   .stat-tile { padding: 12px; }
