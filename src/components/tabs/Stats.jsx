@@ -60,6 +60,28 @@ export default function StatsTab({ serverData }) {
     }).map(e => e.name || e.displayName || e.id || 'Anonym');
   }
 
+  // Pretty name helpers — render initials and nicer display for small avatars
+  function initials(name) {
+    if (!name) return '?';
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+    return (parts[0][0] + (parts[parts.length-1][0] || '')).toUpperCase();
+  }
+
+  function renderHoldersPreview(holders) {
+    if (!holders || holders.length === 0) return null;
+    const maxShow = 6;
+    const visible = holders.slice(0, maxShow);
+    return (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} title={holders.join(', ')}>
+        {visible.map(h => (
+          <div key={h} title={h} style={{ width: 22, height: 22, borderRadius: 999, background: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.04)' }}>{initials(h)}</div>
+        ))}
+        {holders.length > maxShow ? <div style={{ fontSize: 12, color: '#94a3b8' }}>+{holders.length - maxShow}</div> : null}
+      </div>
+    );
+  }
+
   
 
   // Champion distribution (combine simple and advanced)
@@ -258,11 +280,16 @@ export default function StatsTab({ serverData }) {
                     const holders = getHoldersForField('top1', team);
                     const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                     return (
-                      <tr key={team} className="champ-row" title={holders.join(', ')}>
-                        <td className="champ-name">{team}</td>
+                      <tr key={team} className="champ-row">
+                          <td className="champ-name">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div>{team}</div>
+                              {renderHoldersPreview(holders)}
+                            </div>
+                          </td>
                         <td style={{width:60}}>{cnt}</td>
                         <td>
-                            <div className="mini-bar-bg" title={title}>
+                              <div className="mini-bar-bg" title={title}>
                               <div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} />
                             </div>
                           </td>
@@ -285,7 +312,10 @@ export default function StatsTab({ serverData }) {
               const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
               return (
                 <div key={player} title={holders.join(', ')} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                  <div>{player}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div>{player}</div>
+                    {renderHoldersPreview(holders)}
+                  </div>
                   <div style={{ minWidth: 140 }}>
                     <div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div>
                   </div>
@@ -308,10 +338,13 @@ export default function StatsTab({ serverData }) {
                 const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                 return (
                   <div key={val} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <div style={{ flex: 1, color: '#e2e8f0' }}>{val || 'Ingen valg'}</div>
-                    <div style={{ width: 130 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
-                    <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
-                  </div>
+                      <div style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div>{val || 'Ingen valg'}</div>
+                        {renderHoldersPreview(holders)}
+                      </div>
+                      <div style={{ width: 130 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
+                      <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
+                    </div>
                 );
               })}
             </div>
@@ -341,7 +374,7 @@ export default function StatsTab({ serverData }) {
                         const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                         return (
                           <div key={t} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <div style={{ flex: 1, color: '#e2e8f0' }}>{t}</div>
+                            <div style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>{t}{renderHoldersPreview(holders)}</div>
                             <div style={{ width: 110 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
                             <div style={{ width: 44, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
                           </div>
@@ -365,7 +398,7 @@ export default function StatsTab({ serverData }) {
               {rareCorrect.rareItems.map(it => (
                 <div key={it.field} style={{ marginBottom: 10 }}>
                   <div style={{ fontWeight: 700, color: '#fef3c7' }}>{it.field} — {it.value}</div>
-                  <div style={{ color: '#cbd5e1', fontSize: 14 }}>Kun {it.count} forudsigelser havde dette; indehaver(e): {it.holders.join(', ')}</div>
+                  <div style={{ color: '#cbd5e1', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center' }}>Kun {it.count} forudsigelser havde dette; {renderHoldersPreview(it.holders)}</div>
                 </div>
               ))}
             </div>
