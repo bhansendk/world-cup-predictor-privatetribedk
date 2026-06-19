@@ -1,11 +1,11 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import GroupsTab from './tabs/Groups.jsx';
 import ThirdTab from './tabs/Third.jsx';
 import BracketTab from './tabs/Bracket.jsx';
 import FunTipsTab from './tabs/FunTips.jsx';
 import KonkurrenceTab from './tabs/Konkurrence.jsx';
 import ResultaterTab from './tabs/Resultater.jsx';
-const StatsTab = lazy(() => import('./tabs/Stats.jsx'));
+import StatsTab from './tabs/Stats.jsx';
 import { COMBO } from '../data/combo.js';
 import { FUN_QUESTIONS, GROUPS, QF_PAIRS, R16_PAIRS, R32, SF_PAIRS } from '../data/wc2026.js';
 import { extractSimpleFromAdvanced, resolveSlot } from '../lib/scoring.js';
@@ -200,9 +200,7 @@ export default function AdvancedMode(props) {
         />
       )}
       {tab === 'stats' && (
-        <Suspense fallback={<div className="section-card">Indlæser statistik…</div>}>
-          <StatsTab serverData={serverData} />
-        </Suspense>
+        <StatsTab serverData={serverData} />
       )}
       {tab === 'results' && (
         <ResultaterTab

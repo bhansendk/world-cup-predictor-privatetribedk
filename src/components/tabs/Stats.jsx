@@ -1,39 +1,20 @@
 import { extractSimpleFromAdvanced, calcScore, calcSimpleScore } from '../../lib/scoring.js';
 import { FUN_QUESTIONS, GROUPS } from '../../data/wc2026.js';
-import React, { useEffect, useState } from 'react';
+import { Pie, Bar, Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend,
+  Title
+} from 'chart.js';
 
-// Dynamically load Chart.js + react-chartjs-2 on client only to avoid SSR/build errors
-const isBrowser = typeof window !== 'undefined';
-
-const CHART_TEXT_COLOR = '#e2e8f0';
-
-const baseChartOptions = {
-  plugins: {
-    legend: { labels: { color: CHART_TEXT_COLOR } },
-    title: { color: CHART_TEXT_COLOR },
-    tooltip: { enabled: true }
-  },
-  scales: {
-    x: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } },
-    y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } }
-  }
-};
-
-function makeBarOptions(overrides = {}) {
-  return {
-    indexAxis: 'y',
-    maintainAspectRatio: false,
-    plugins: {
-      ...baseChartOptions.plugins,
-      ...(overrides.plugins || {})
-    },
-    scales: {
-      x: { beginAtZero: true, ticks: { precision: 0, color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } },
-      y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: 'rgba(255,255,255,0.03)' } }
-    },
-    ...overrides
-  };
-}
+ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title);
 
 function pct(count, total) {
   if (!total) return '0%';
@@ -55,38 +36,35 @@ function groupBy(arr, keyFn) {
 }
 
 export default function StatsTab({ serverData }) {
-  const [Charts, setCharts] = useState(null);
-  const [hovered, setHovered] = useState(null);
-
-  useEffect(() => {
-    if (!isBrowser) return;
-    let cancelled = false;
-    Promise.all([
-      import('react-chartjs-2'),
-      import('chart.js')
-    ]).then(([rc, cj]) => {
-      try {
-        const ChartJS = cj.Chart || cj.default || cj;
-        const { ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title } = cj;
-        if (ChartJS && ChartJS.register) {
-          ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title);
-        }
-      } catch (e) {
-        // ignore registration errors
-      }
-      if (!cancelled) setCharts({ Pie: rc.Pie, Bar: rc.Bar, Line: rc.Line });
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
   const entries = Array.isArray(serverData?.colleagues) ? serverData.colleagues : [];
   const total = entries.length;
+
+  // Helper: get names of colleagues who picked a given simple field (top1, topscorer, or any fun question id)
+  function getHoldersForField(fieldId, value) {
+    if (!value) return [];
+    return entries.filter(e => {
+      const mode = e.mode || 'simple';
+      const simple = mode === 'advanced'
+        ? extractSimpleFromAdvanced(e.prediction?.bracket || e.prediction || {}, e.prediction?.fun || {})
+        : (e.prediction || {});
+      return simple[fieldId] === value;
+    }).map(e => e.name || e.displayName || e.id || 'Anonym');
+  }
+
+  // Helper: get holders for advanced group p1 picks
+  function getGroupP1Holders(groupKey, team) {
+    if (!team) return [];
+    return entries.filter(e => {
+      const pick = e.prediction?.g && e.prediction.g[groupKey] ? e.prediction.g[groupKey].p1 : null;
+      return pick === team;
+    }).map(e => e.name || e.displayName || e.id || 'Anonym');
+  }
 
   
 
   // Champion distribution (combine simple and advanced)
   const champCounts = new Map();
   const topScorerCounts = new Map();
-  const funHolders = {};
   const modes = { simple: 0, advanced: 0 };
 
   entries.forEach(e => {
@@ -105,22 +83,6 @@ export default function StatsTab({ serverData }) {
     // Topscorer (fun question)
     const ts = (e.prediction?.topscorer) || (e.prediction?.fun?.topscorer) || null;
     if (ts) topScorerCounts.set(ts, (topScorerCounts.get(ts) || 0) + 1);
-
-    // Fun holders: who guessed which value for each fun question
-    FUN_QUESTIONS.forEach(q => {
-      const val = (e.prediction?.fun && e.prediction.fun[q.id]) || (e.prediction && e.prediction[q.id]) || null;
-      if (!funHolders[q.id]) funHolders[q.id] = new Map();
-      const name = e.name || e.displayName || e.id || 'Anonym';
-      if (val) {
-        const arr = funHolders[q.id].get(val) || [];
-        arr.push(name);
-        funHolders[q.id].set(val, arr);
-      } else {
-        const arr = funHolders[q.id].get('—') || [];
-        arr.push(name);
-        funHolders[q.id].set('—', arr);
-      }
-    });
 
     // don't store submission dates here (privacy)
   });
@@ -268,47 +230,45 @@ export default function StatsTab({ serverData }) {
         {champList.length === 0 ? <p>Ingen data endnu.</p> : (
           <div className="chart-compact">
             <div className="chart-wrap">
-              {Charts ? (
-                <Charts.Pie data={{
-                  labels: champList.map(c => c[0]),
-                  datasets: [{ data: champList.map(c => c[1]), backgroundColor: champList.map((_, i) => `hsl(${(i*50)%360} 70% 50%)`) }]
-                }} options={{
-                  ...baseChartOptions,
-                  plugins: {
-                    ...baseChartOptions.plugins,
-                    tooltip: {
-                      callbacks: {
-                        label: (ctx) => {
-                          const label = ctx.label || '';
-                          const value = ctx.parsed || 0;
-                          const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0;
-                          const percent = sum ? Math.round((value/sum)*100) : 0;
-                          return `${label}: ${value} (${percent}%)`;
-                        }
+              <Pie data={{
+                labels: champList.map(c => c[0]),
+                datasets: [{ data: champList.map(c => c[1]), backgroundColor: champList.map((_, i) => `hsl(${(i*50)%360} 70% 50%)`) }]
+              }} options={{
+                plugins: {
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => {
+                        const label = ctx.label || '';
+                        const value = ctx.parsed || 0;
+                        const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0;
+                        const percent = sum ? Math.round((value/sum)*100) : 0;
+                        return `${label}: ${value} (${percent}%)`;
                       }
-                    },
-                    legend: { position: 'bottom', labels: { color: CHART_TEXT_COLOR } }
-                  }
-                }} />
-              ) : (
-                <div className="chart-wrap" style={{display:'flex',alignItems:'center',justifyContent:'center',height:320}}>Diagram indlæses…</div>
-              )}
+                    }
+                  },
+                  legend: { position: 'bottom' }
+                }
+              }} />
             </div>
             <div style={{ minWidth: 260 }}>
               <table className="simple-table">
                 <thead><tr><th>Hold</th><th>Antal</th><th style={{width:120}}>%</th></tr></thead>
                 <tbody>
-                  {champList.map(([team, cnt]) => (
-                    <tr key={team} className="champ-row">
-                      <td className="champ-name">{team}</td>
-                      <td style={{width:60}}>{cnt}</td>
-                      <td>
-                          <div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}>
-                            <div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} />
-                          </div>
-                        </td>
-                    </tr>
-                  ))}
+                  {champList.map(([team, cnt]) => {
+                    const holders = getHoldersForField('top1', team);
+                    const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
+                    return (
+                      <tr key={team} className="champ-row" title={holders.join(', ')}>
+                        <td className="champ-name">{team}</td>
+                        <td style={{width:60}}>{cnt}</td>
+                        <td>
+                            <div className="mini-bar-bg" title={title}>
+                              <div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} />
+                            </div>
+                          </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -320,15 +280,19 @@ export default function StatsTab({ serverData }) {
         <h3>Topscorer-fordeling</h3>
         {topScorerList.length === 0 ? <p>Ingen data.</p> : (
           <div>
-            {topScorerList.slice(0, 10).map(([player, cnt]) => (
-              <div key={player} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                <div>{player}</div>
-                <div style={{ minWidth: 140 }}>
-                  <div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div>
+            {topScorerList.slice(0, 10).map(([player, cnt]) => {
+              const holders = getHoldersForField('topscorer', player);
+              const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
+              return (
+                <div key={player} title={holders.join(', ')} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                  <div>{player}</div>
+                  <div style={{ minWidth: 140 }}>
+                    <div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div>
+                  </div>
+                  <div style={{ width: 56, textAlign: 'right' }}>{cnt} ({pct(cnt, total)})</div>
                 </div>
-                <div style={{ width: 56, textAlign: 'right' }}>{cnt} ({pct(cnt, total)})</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -337,22 +301,16 @@ export default function StatsTab({ serverData }) {
         <h3>Sjove tips</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
           {FUN_QUESTIONS.map(q => (
-            <div key={q.id} style={{ padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8, position: 'relative' }}>
+            <div key={q.id} style={{ padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
               <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 6 }}>{q.title}</div>
-              {Array.from((funDistributions[q.id] || new Map()).entries()).sort((a,b)=>b[1]-a[1]).map(([val, cnt]) => {
-                const valKey = String(val ?? '—');
-                const holders = (funHolders[q.id] && (funHolders[q.id].get(val) || funHolders[q.id].get('—'))) || [];
+              {Array.from(funDistributions[q.id].entries()).sort((a,b)=>b[1]-a[1]).map(([val, cnt]) => {
+                const holders = getHoldersForField(q.id, val);
+                const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                 return (
-                  <div key={valKey} onMouseEnter={() => setHovered(`${q.id}||${valKey}`)} onMouseLeave={() => setHovered(null)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div key={val} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <div style={{ flex: 1, color: '#e2e8f0' }}>{val || 'Ingen valg'}</div>
-                    <div style={{ width: 130 }}><div className="mini-bar-bg" title={`${cnt} (${pct(cnt, total)})`}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
+                    <div style={{ width: 130 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
                     <div style={{ width: 48, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
-                    {hovered === `${q.id}||${valKey}` && (
-                      <div style={{ position: 'absolute', background: 'rgba(0,0,0,0.7)', color: '#e2e8f0', padding: '8px 10px', borderRadius: 8, maxWidth: 320, zIndex: 40, boxShadow: '0 6px 20px rgba(0,0,0,0.6)' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Gættet af:</div>
-                        <div style={{ fontSize: 12, color: '#cbd5e1' }}>{holders.join(', ') || 'Ingen'}</div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -374,12 +332,22 @@ export default function StatsTab({ serverData }) {
               <div key={gk} className="chart-card">
                 <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 8 }}>{g.name}</div>
                 <div style={{ height: 120 }}>
-                  {Charts ? (
-                    <Charts.Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={makeBarOptions({ plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } })} />
-                  ) : (
-                    <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center'}}>Diagram indlæses…</div>
-                  )}
+                  <Bar data={{ labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>`hsl(${(i*60)%360} 70% 45%)`) }] }} options={{ indexAxis: 'y', maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => { const value = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.x ?? ctx.parsed) : (ctx.parsed || 0); const sum = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data.reduce((a,b)=>a+b,0) : 0; const pct = sum ? Math.round((value/sum)*100) : 0; return `${ctx.label}: ${value} (${pct}%)`; } } }, legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }} />
                 </div>
+                    <div style={{ marginTop: 8 }}>
+                      {labels.map(t => {
+                        const cnt = map.get(t) || 0;
+                        const holders = getGroupP1Holders(gk, t);
+                        const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
+                        return (
+                          <div key={t} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <div style={{ flex: 1, color: '#e2e8f0' }}>{t}</div>
+                            <div style={{ width: 110 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
+                            <div style={{ width: 44, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
               </div>
             );
           })}
