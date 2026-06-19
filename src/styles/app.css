@@ -191,6 +191,9 @@ a.lb-name-link:hover{color:#3b82f6}
 .chart-compact { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap }
 .chart-compact .chart-wrap { width:320px }
 
+/* Hover reveal for holders preview: hidden by default, shown when parent hovered */
+.hover-reveal .holders-preview { display: none; }
+.hover-reveal:hover .holders-preview { display: flex; }
 @media (max-width: 820px) {
   .chart-compact .chart-wrap { width: 100%; }
   .stat-tile { padding: 12px; }

@@ -1,4 +1,5 @@
 import { extractSimpleFromAdvanced, calcScore, calcSimpleScore } from '../../lib/scoring.js';
+import { useMemo } from 'react';
 import { FUN_QUESTIONS, GROUPS } from '../../data/wc2026.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import {
@@ -73,9 +74,9 @@ export default function StatsTab({ serverData }) {
     const maxShow = 6;
     const visible = holders.slice(0, maxShow);
     return (
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} title={holders.join(', ')}>
+      <div className="holders-preview" title={holders.join(', ')} style={{ gap: 6, alignItems: 'center', display: 'flex' }}>
         {visible.map(h => (
-          <div key={h} title={h} style={{ width: 22, height: 22, borderRadius: 999, background: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.04)' }}>{initials(h)}</div>
+          <div key={h} title={h} className="holder-badge" style={{ width: 22, height: 22, borderRadius: 999, background: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.04)' }}>{initials(h)}</div>
         ))}
         {holders.length > maxShow ? <div style={{ fontSize: 12, color: '#94a3b8' }}>+{holders.length - maxShow}</div> : null}
       </div>
@@ -84,30 +85,26 @@ export default function StatsTab({ serverData }) {
 
   
 
-  // Champion distribution (combine simple and advanced)
-  const champCounts = new Map();
-  const topScorerCounts = new Map();
-  const modes = { simple: 0, advanced: 0 };
-
-  entries.forEach(e => {
-    const mode = e.mode || 'simple';
-    modes[mode] = (modes[mode] || 0) + 1;
-
-    // Champion
-    let top1 = null;
-    if (mode === 'simple') top1 = (e.prediction || {}).top1 || null;
-    else {
-      const s = extractSimpleFromAdvanced(e.prediction?.bracket || e.prediction || {}, e.prediction?.fun || {});
-      top1 = s.top1 || null;
-    }
-    if (top1) champCounts.set(top1, (champCounts.get(top1) || 0) + 1);
-
-    // Topscorer (fun question)
-    const ts = (e.prediction?.topscorer) || (e.prediction?.fun?.topscorer) || null;
-    if (ts) topScorerCounts.set(ts, (topScorerCounts.get(ts) || 0) + 1);
-
-    // don't store submission dates here (privacy)
-  });
+  // Champion distribution (combine simple and advanced) — memoized
+  const { champCounts, topScorerCounts, modes } = useMemo(() => {
+    const cCounts = new Map();
+    const tsCounts = new Map();
+    const m = { simple: 0, advanced: 0 };
+    entries.forEach(e => {
+      const mode = e.mode || 'simple';
+      m[mode] = (m[mode] || 0) + 1;
+      let top1 = null;
+      if (mode === 'simple') top1 = (e.prediction || {}).top1 || null;
+      else {
+        const s = extractSimpleFromAdvanced(e.prediction?.bracket || e.prediction || {}, e.prediction?.fun || {});
+        top1 = s.top1 || null;
+      }
+      if (top1) cCounts.set(top1, (cCounts.get(top1) || 0) + 1);
+      const ts = (e.prediction?.topscorer) || (e.prediction?.fun?.topscorer) || null;
+      if (ts) tsCounts.set(ts, (tsCounts.get(ts) || 0) + 1);
+    });
+    return { champCounts: cCounts, topScorerCounts: tsCounts, modes: m };
+  }, [entries]);
 
   // Top lists
   const champList = Array.from(champCounts.entries()).sort((a, b) => b[1] - a[1]);
@@ -127,22 +124,28 @@ export default function StatsTab({ serverData }) {
 
   // (removed per-day date distribution for privacy)
 
-  // group 1st place picks (advanced predictions)
-  const groupP1Counts = {};
-  Object.entries(GROUPS).forEach(([gk, g]) => {
-    const map = new Map();
-    entries.forEach(e => {
-      const pick = e.prediction?.g?.[gk]?.p1 || null;
-      if (pick) map.set(pick, (map.get(pick) || 0) + 1);
+  // group 1st place picks (advanced predictions) — memoized
+  const groupP1Counts = useMemo(() => {
+    const out = {};
+    Object.entries(GROUPS).forEach(([gk, g]) => {
+      const map = new Map();
+      entries.forEach(e => {
+        const pick = e.prediction?.g?.[gk]?.p1 || null;
+        if (pick) map.set(pick, (map.get(pick) || 0) + 1);
+      });
+      out[gk] = map;
     });
-    groupP1Counts[gk] = map;
-  });
+    return out;
+  }, [entries]);
 
-  // Fun questions distribution
-  const funDistributions = {};
-  FUN_QUESTIONS.forEach(q => {
-    funDistributions[q.id] = groupBy(entries, e => (e.prediction?.fun && e.prediction.fun[q.id]) || (e.prediction && e.prediction[q.id]) || null);
-  });
+  // Fun questions distribution — memoized
+  const funDistributions = useMemo(() => {
+    const fd = {};
+    FUN_QUESTIONS.forEach(q => {
+      fd[q.id] = groupBy(entries, e => (e.prediction?.fun && e.prediction.fun[q.id]) || (e.prediction && e.prediction[q.id]) || null);
+    });
+    return fd;
+  }, [entries]);
 
   const results = serverData?.results || null;
 
@@ -282,7 +285,7 @@ export default function StatsTab({ serverData }) {
                     return (
                       <tr key={team} className="champ-row">
                           <td className="champ-name">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="hover-reveal" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div>{team}</div>
                               {renderHoldersPreview(holders)}
                             </div>
@@ -312,7 +315,7 @@ export default function StatsTab({ serverData }) {
               const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
               return (
                 <div key={player} title={holders.join(', ')} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="hover-reveal" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div>{player}</div>
                     {renderHoldersPreview(holders)}
                   </div>
@@ -338,7 +341,7 @@ export default function StatsTab({ serverData }) {
                 const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                 return (
                   <div key={val} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <div style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="hover-reveal" style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div>{val || 'Ingen valg'}</div>
                         {renderHoldersPreview(holders)}
                       </div>
@@ -374,7 +377,7 @@ export default function StatsTab({ serverData }) {
                         const title = `${cnt} (${pct(cnt, total)})` + (holders.length ? ` — ${holders.join(', ')}` : '');
                         return (
                           <div key={t} title={holders.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <div style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>{t}{renderHoldersPreview(holders)}</div>
+                            <div className="hover-reveal" style={{ flex: 1, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>{t}{renderHoldersPreview(holders)}</div>
                             <div style={{ width: 110 }}><div className="mini-bar-bg" title={title}><div className="mini-bar" style={{ width: `${pctNum(cnt, total)}%` }} /></div></div>
                             <div style={{ width: 44, textAlign: 'right', color: '#94a3b8' }}>{cnt}</div>
                           </div>
@@ -398,7 +401,7 @@ export default function StatsTab({ serverData }) {
               {rareCorrect.rareItems.map(it => (
                 <div key={it.field} style={{ marginBottom: 10 }}>
                   <div style={{ fontWeight: 700, color: '#fef3c7' }}>{it.field} — {it.value}</div>
-                  <div style={{ color: '#cbd5e1', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center' }}>Kun {it.count} forudsigelser havde dette; {renderHoldersPreview(it.holders)}</div>
+                  <div style={{ color: '#cbd5e1', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center' }}>Kun {it.count} forudsigelser havde dette; <span className="hover-reveal">{renderHoldersPreview(it.holders)}</span></div>
                 </div>
               ))}
             </div>
