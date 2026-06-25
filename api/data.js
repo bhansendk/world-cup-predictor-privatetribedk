@@ -465,6 +465,50 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
+      if (action === 'setcodes') {
+        if (!ADMIN_PASS) return res.status(503).json({ error: 'ADMIN_PASSWORD er ikke konfigureret' });
+        const { password, code, except } = body;
+        if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });
+        if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Manglende kode' });
+
+        const data = await readBlob();
+        const cols = Array.isArray(data.colleagues) ? data.colleagues : [];
+        const normExcept = normalizeName(except || '');
+        let changed = 0;
+        for (const c of cols) {
+          if (normalizeName(c.name) === normExcept) continue;
+          const resolved = normalizeEditCode(code);
+          c.editCode = resolved;
+          c.editCodeHash = hashEditCode(resolved);
+          c.usesDefaultEditCode = isDefaultInitialCode(resolved);
+          changed += 1;
+        }
+        data.colleagues = cols;
+        await writeBlob(data);
+        return res.status(200).json({ ok: true, changed });
+      }
+
+      if (action === 'setcode') {
+        if (!ADMIN_PASS) return res.status(503).json({ error: 'ADMIN_PASSWORD er ikke konfigureret' });
+        const { password, name, code } = body;
+        if (password !== ADMIN_PASS) return res.status(403).json({ error: 'Forkert adgangskode' });
+        if (!name || typeof name !== 'string') return res.status(400).json({ error: 'Manglende navn' });
+        if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Manglende kode' });
+
+        const data = await readBlob();
+        const cols = Array.isArray(data.colleagues) ? data.colleagues : [];
+        const normalized = normalizeName(name);
+        const idx = cols.findIndex(c => normalizeName(c.name) === normalized);
+        if (idx < 0) return res.status(404).json({ error: 'Kunne ikke finde bruger' });
+        const resolved = normalizeEditCode(code);
+        cols[idx].editCode = resolved;
+        cols[idx].editCodeHash = hashEditCode(resolved);
+        cols[idx].usesDefaultEditCode = isDefaultInitialCode(resolved);
+        data.colleagues = cols;
+        await writeBlob(data);
+        return res.status(200).json({ ok: true, name: cols[idx].name, editCode: cols[idx].editCode });
+      }
+
       if (action === 'scanBlobs') {
         if (!ADMIN_PASS) return res.status(503).json({ error: 'ADMIN_PASSWORD er ikke konfigureret' });
         const { password } = body;
