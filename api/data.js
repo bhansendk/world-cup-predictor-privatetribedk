@@ -241,7 +241,11 @@ export default async function handler(req, res) {
       const revealed = new Date() >= REVEAL_DATE;
 
       // Build colleague lists depending on whether requester is admin
-      const colleaguesForAdmin = (data.colleagues || []).map(({ editCodeHash, editCode, ...rest }) => ({ ...rest, editCode }));
+      const colleaguesForAdmin = (data.colleagues || []).map((c) => {
+        const { editCodeHash, editCode, usesDefaultEditCode, ...rest } = c || {};
+        const resolved = editCode || (usesDefaultEditCode !== false ? DEFAULT_INITIAL_EDIT_CODE : null);
+        return { ...rest, editCode: resolved };
+      });
       const colleaguesForPublic = (data.colleagues || []).map(({ editCodeHash, editCode, ...rest }) => rest);
 
       if (!revealed && !isAdmin) {

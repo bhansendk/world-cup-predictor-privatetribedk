@@ -119,7 +119,7 @@ function decodeImportText(rawText) {
   throw new Error('Kunne ikke aflæse import-teksten');
 }
 
-function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onLoadPrediction, loading, colleagues, serverData }) {
+function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, onLoadPrediction, loading, colleagues, serverData, fetchData }) {
   const [pw, setPw] = useState('');
   const [status, setStatus] = useState('');
   const [importName, setImportName] = useState('');
@@ -139,6 +139,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
     if (res.ok) {
       setPw('');
       setStatus('✅ Logget ind som admin');
+      try { if (typeof fetchData === 'function') await fetchData(); } catch {}
       return;
     }
     setStatus('❌ ' + res.error);
@@ -284,10 +285,11 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
           {colleagues.map(c => (
             <div
               key={c.name}
-              className="participant-chip"
-              title={c.editCode ? `Kode: ${c.editCode}` : ''}
+              className="participant-chip hover-reveal"
             >
-              {c.name} <span className="chip-mode">{c.mode === 'simple' ? '⚡' : '⭐'}</span>
+              <span className="chip-name">{c.name}</span>
+              <span className="chip-mode">{c.mode === 'simple' ? '⚡' : '⭐'}</span>
+              <span className="chip-code">{c.editCode ? `Kode: ${c.editCode}` : 'Kode: –'}</span>
               <button className="btn-danger-sm" onClick={() => handleDeleteOne(c.name)}>✕</button>
             </div>
           ))}
@@ -435,7 +437,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
   );
 }
 
-export default function ResultaterTab({ serverData, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading, setS, setFUN, setSIMPLE }) {
+export default function ResultaterTab({ serverData, adminUpdate, adminVerify, adminLogout, isAdmin, adminPassword, adminDelete, adminClearAll, loading, setS, setFUN, setSIMPLE, fetchData }) {
   const [adminOpen, setAdminOpen] = useState(isAdmin);
   const colleagues = serverData?.colleagues || [];
 
@@ -499,8 +501,9 @@ export default function ResultaterTab({ serverData, adminUpdate, adminVerify, ad
           adminClearAll={adminClearAll}
           onLoadPrediction={handleLoadPrediction}
           loading={loading}
-          colleagues={colleagues}
-          serverData={serverData}
+            colleagues={colleagues}
+            serverData={serverData}
+            fetchData={fetchData}
         />
       )}
       {!adminOpen && (

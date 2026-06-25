@@ -304,6 +304,9 @@ a.lb-name-link:hover{color:#3b82f6}
 .participants-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .participant-chip { display: flex; align-items: center; gap: 6px; background: #0f172a; border: 1px solid #334155; border-radius: 20px; padding: 6px 12px; font-size: .85em; }
 .chip-mode { color: #94a3b8; }
+/* show edit code only on hover for admin panel */
+.participant-chip .chip-code { display: none; margin-left: 8px; background: rgba(59,130,246,0.08); color: #93c5fd; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: .82em; }
+.participant-chip.hover-reveal:hover .chip-code { display: inline-block; }
 .admin-auth { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
 .bracket-scroll { overflow-x: auto; padding: 20px 0; }
 .bracket { display: inline-flex; align-items: flex-start; }
