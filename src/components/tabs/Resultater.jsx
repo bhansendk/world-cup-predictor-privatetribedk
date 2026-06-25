@@ -124,6 +124,8 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
   const [status, setStatus] = useState('');
   const [importName, setImportName] = useState('');
   const [importText, setImportText] = useState('');
+  const [editTarget, setEditTarget] = useState(null);
+  const [editValue, setEditValue] = useState('');
   const [resultState, setResultState] = useState(() => ({ ...emptyResults(), ...(serverData?.results || {}) }));
 
   useEffect(() => {
@@ -290,7 +292,39 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
               <span className="chip-name">{c.name}</span>
               <span className="chip-mode">{c.mode === 'simple' ? '⚡' : '⭐'}</span>
               <span className="chip-code">{c.editCode ? `Kode: ${c.editCode}` : 'Kode: –'}</span>
-              <button className="btn-danger-sm" onClick={() => handleDeleteOne(c.name)}>✕</button>
+              {editTarget === c.name ? (
+                <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    className="name-input"
+                    style={{ width: 120 }}
+                  />
+                  <button className="btn-accent btn-sm" onClick={async () => {
+                    if (!activePw) { setStatus('❌ Indtast admin-adgangskode først'); return; }
+                    try {
+                      const resp = await fetch('/api/data?action=setcode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: activePw, name: c.name, code: editValue })
+                      });
+                      const json = await resp.json();
+                      if (!json.ok) { setStatus('❌ ' + (json.error || 'Fejl')); return; }
+                      setStatus(`✅ Kode opdateret for ${c.name}`);
+                      setEditTarget(null);
+                      setEditValue('');
+                      try { if (typeof fetchData === 'function') await fetchData(); } catch {}
+                    } catch (e) { setStatus('❌ Netværksfejl'); }
+                  }}>Gem</button>
+                  <button className="btn-ghost btn-sm" onClick={() => { setEditTarget(null); setEditValue(''); }}>Annuller</button>
+                </div>
+              ) : (
+                <>
+                  <button className="btn-ghost btn-sm" onClick={() => { setEditTarget(c.name); setEditValue(c.editCode || ''); }}>✎</button>
+                  <button className="btn-danger-sm" onClick={() => handleDeleteOne(c.name)}>✕</button>
+                </>
+              )}
             </div>
           ))}
         </div>
