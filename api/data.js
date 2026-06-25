@@ -237,22 +237,29 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const data = await readBlob();
-      const withoutCodeHash = {
-        ...data,
-        colleagues: (data.colleagues || []).map(({ editCodeHash, ...rest }) => rest)
-      };
       const isAdmin = !!ADMIN_PASS && req.query.password === ADMIN_PASS;
       const revealed = new Date() >= REVEAL_DATE;
+
+      // Build colleague lists depending on whether requester is admin
+      const colleaguesForAdmin = (data.colleagues || []).map(({ editCodeHash, editCode, ...rest }) => ({ ...rest, editCode }));
+      const colleaguesForPublic = (data.colleagues || []).map(({ editCodeHash, editCode, ...rest }) => rest);
+
       if (!revealed && !isAdmin) {
         // Strip predictions - only return name, mode, submittedAt
         return res.status(200).json({
-          ...withoutCodeHash,
+          ...data,
           revealed: false,
           revealDate: REVEAL_DATE.toISOString(),
-          colleagues: (withoutCodeHash.colleagues || []).map(({ name, mode, submittedAt }) => ({ name, mode, submittedAt })),
+          colleagues: (colleaguesForPublic || []).map(({ name, mode, submittedAt }) => ({ name, mode, submittedAt })),
         });
       }
-      return res.status(200).json({ ...withoutCodeHash, revealed: true, revealDate: REVEAL_DATE.toISOString() });
+
+      return res.status(200).json({
+        ...data,
+        revealed: true,
+        revealDate: REVEAL_DATE.toISOString(),
+        colleagues: isAdmin ? colleaguesForAdmin : colleaguesForPublic
+      });
     }
 
     if (req.method === 'POST') {
@@ -358,6 +365,7 @@ export default async function handler(req, res) {
                 prediction,
                 submittedAt: nowIso,
                 editCodeHash: hashEditCode(resolvedCode),
+                editCode: resolvedCode,
                 usesDefaultEditCode: false,
                 lastSaveId: saveId
               };
@@ -383,6 +391,7 @@ export default async function handler(req, res) {
                 prediction,
                 submittedAt: nowIso,
                 editCodeHash: nextHash,
+                editCode: resolvedCode,
                 usesDefaultEditCode: false,
                 lastSaveId: saveId
               };
@@ -443,6 +452,7 @@ export default async function handler(req, res) {
           prediction,
           submittedAt: new Date().toISOString(),
           editCodeHash: existing?.editCodeHash || null,
+          editCode: existing?.editCode || null,
           usesDefaultEditCode: existing?.usesDefaultEditCode !== false
         };
         if (idx >= 0) data.colleagues[idx] = entry;

@@ -282,7 +282,11 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
         <h3>👥 Deltagere</h3>
         <div className="participants-list">
           {colleagues.map(c => (
-            <div key={c.name} className="participant-chip">
+            <div
+              key={c.name}
+              className="participant-chip"
+              title={c.editCode ? `Kode: ${c.editCode}` : ''}
+            >
               {c.name} <span className="chip-mode">{c.mode === 'simple' ? '⚡' : '⭐'}</span>
               <button className="btn-danger-sm" onClick={() => handleDeleteOne(c.name)}>✕</button>
             </div>
