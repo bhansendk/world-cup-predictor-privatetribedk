@@ -158,7 +158,20 @@ export default function useServerData() {
       });
       const parsed = await parseApiResponse(res);
       if (!parsed.ok) throw new Error(buildApiError(parsed, 'Forkert kode'));
-      await fetchData();
+      // Fetch fresh data including admin password so caller sees updated results
+      try {
+        const query = password ? `?password=${encodeURIComponent(password)}` : '';
+        const fres = await fetch('/api/data' + query);
+        if (fres.ok) {
+          const json = await fres.json();
+          setServerData(json);
+        } else {
+          // fallback to regular fetchData
+          await fetchData();
+        }
+      } catch (e) {
+        await fetchData();
+      }
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e.message };

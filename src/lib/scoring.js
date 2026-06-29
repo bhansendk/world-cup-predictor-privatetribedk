@@ -95,24 +95,38 @@ export function calcScore(tips, bracket, fun, AR) {
   if (tp) breakdown.push('3\'ere: +' + tp);
 
   // Knockout rounds (team progression, not exact bracket slot)
-  const rounds = [
-    { store: AR.r32 || {}, pStore: bracket.r32 || {}, rPts: 2, label: 'R16 nået' },
-    { store: AR.r16 || {}, pStore: bracket.r16 || {}, rPts: 4, label: 'KF nået' },
-    { store: AR.qf  || {}, pStore: bracket.qf  || {}, rPts: 6, label: 'SF nået' },
-    { store: AR.sf  || {}, pStore: bracket.sf  || {}, rPts: 8, label: 'Finale nået' },
-  ];
-  rounds.forEach(({ store, pStore, rPts, label }) => {
-    let rp = 0;
-    const actualTeams = new Set(Object.values(store).filter(Boolean));
+  // Award progression points even if admin has only filled later rounds —
+  // a team appearing in a later round counts as having reached earlier rounds.
+  const roundOrder = ['r32', 'r16', 'qf', 'sf'];
+  const roundPoints = { r32: 2, r16: 4, qf: 6, sf: 8 };
+  const roundLabels = { r32: 'R16 nået', r16: 'KF nået', qf: 'SF nået', sf: 'Finale nået' };
+
+  for (let i = 0; i < roundOrder.length; i++) {
+    const key = roundOrder[i];
+    const pStore = bracket?.[key] || {};
     const predictedTeams = new Set(Object.values(pStore).filter(Boolean));
+    if (!predictedTeams.size) continue;
+
+    // Build a union of actual teams from this round and any later rounds
+    const actualTeams = new Set();
+    for (let j = i; j < roundOrder.length; j++) {
+      const aStore = AR[roundOrder[j]] || {};
+      Object.values(aStore).filter(Boolean).forEach(t => actualTeams.add(t));
+    }
+    // Also include final/bronce winners if present (they imply progression)
+    if (AR.final) Object.values(AR.final).filter(Boolean).forEach(t => actualTeams.add(t));
+    if (AR.bronze) Object.values(AR.bronze).filter(Boolean).forEach(t => actualTeams.add(t));
+
+    let rp = 0;
+    const rPts = roundPoints[key] || 0;
     predictedTeams.forEach(team => {
       if (actualTeams.has(team)) {
         pts += rPts;
         rp += rPts;
       }
     });
-    if (rp) breakdown.push(label + ': +' + rp);
-  });
+    if (rp) breakdown.push(roundLabels[key] + ': +' + rp);
+  }
 
   // Final: 6pt per correct finalist + 15pt champion
   const arFin  = AR.final?.['fin'] || null;
