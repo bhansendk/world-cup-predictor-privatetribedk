@@ -4,6 +4,34 @@ import { extractSimpleFromAdvanced } from '../../lib/scoring.js';
 import { FlagSpan, TeamSelect } from '../FormFields.jsx';
 import BracketTab from './Bracket.jsx';
 
+function MultiSelectDropdown({ options, value = [], onChange, placeholder = '–', disabled = false }) {
+  const [open, setOpen] = useState(false);
+  const toggle = (e) => { e.preventDefault(); if (disabled) return; setOpen(!open); };
+  const handleCheck = (option) => {
+    const next = value.includes(option) ? value.filter(x => x !== option) : [...value, option];
+    onChange(next.length ? next : []);
+  };
+  return (
+    <div style={{ position: 'relative' }}>
+      <button className="btn-ghost" onClick={toggle} disabled={disabled} style={{ width: '100%', textAlign: 'left' }}>
+        {value && value.length ? value.join(', ') : placeholder}
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', zIndex: 50, background: '#fff', border: '1px solid #e5e7eb', maxHeight: 220, overflow: 'auto', boxShadow: '0 6px 18px rgba(0,0,0,0.08)', width: '100%' }}>
+          {options.map(o => (
+            <label key={o} style={{ display: 'block', padding: '6px 8px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={(value || []).includes(o)} onChange={() => handleCheck(o)} /> <span style={{ marginLeft: 8 }}>{o}</span>
+            </label>
+          ))}
+          <div style={{ padding: 6, textAlign: 'right' }}>
+            <button className="btn-ghost btn-sm" onClick={() => setOpen(false)}>Luk</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const ROUND_LABELS = {
   r32: 'R32',
   r16: 'R16',
@@ -596,12 +624,7 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
                         const opts = q.options.filter(o => !otherSel.includes(o) || curArr.includes(o));
                         return (
                           <div key={pos} style={{ flex: 1 }}>
-                            <select multiple size={Math.min(8, q.options.length)} value={curArr} onChange={e => {
-                              const sel = Array.from(e.target.selectedOptions).map(o => o.value);
-                              setFunRankMulti(q.id, pos, sel);
-                            }}>
-                              {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                            </select>
+                            <MultiSelectDropdown options={opts} value={curArr} onChange={(sel) => setFunRankMulti(q.id, pos, sel)} placeholder="–" disabled={!isAdmin} />
                           </div>
                         );
                       })}
