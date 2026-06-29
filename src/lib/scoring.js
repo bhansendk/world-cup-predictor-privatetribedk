@@ -3,6 +3,18 @@ import { COMBO } from '../data/combo.js';
 
 const GROUP_BASE_POINTS = { 1: 3, 2: 2, 3: 2 };
 
+function _toArray(v) {
+  if (v === null || v === undefined) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+function matchesAnswer(predicted, actual) {
+  const p = _toArray(predicted);
+  const a = _toArray(actual);
+  if (!p.length || !a.length) return false;
+  return p.some(x => a.includes(x));
+}
+
 // ── Resolve bracket slot to team name ────────────────────────────
 export function resolveSlot(slot, g, third) {
   const [rank, grp] = slot;
@@ -127,7 +139,9 @@ export function calcScore(tips, bracket, fun, AR) {
   if (AR.fun) {
     let funPts = 0;
     Object.entries(FUN_PTS).forEach(([id, p]) => {
-      if (AR.fun[id] && cFun[id] === AR.fun[id]) { pts += p; funPts += p; }
+      const actual = AR.fun[id];
+      const predicted = cFun[id];
+      if (matchesAnswer(predicted, actual)) { pts += p; funPts += p; }
     });
     if (funPts) breakdown.push('Sjove tips: +' + funPts);
   }
@@ -168,9 +182,9 @@ export function calcSimpleScore(simple, AR) {
   scoreTop4Slot(simple.top4, arSFLosers[1], 5, 3, 'Nr. 3/4');
 
   const afun = AR.fun || {};
-  if (afun.topscorer    && simple.topscorer    === afun.topscorer)    { pts += 10; bd.push('Topscorer: +10'); }
-  if (afun.golden_ball  && simple.golden_ball  === afun.golden_ball)  { pts += 10; bd.push('Turnspiller: +10'); }
-  if (afun.most_yellow  && simple.most_yellow  === afun.most_yellow)  { pts += 6;  bd.push('Gule kort: +6'); }
-  if (afun.most_goals_team && simple.most_goals_team === afun.most_goals_team) { pts += 8; bd.push('Flest mål (hold): +8'); }
+  if (matchesAnswer(simple.topscorer, afun.topscorer))    { pts += 10; bd.push('Topscorer: +10'); }
+  if (matchesAnswer(simple.golden_ball, afun.golden_ball))  { pts += 10; bd.push('Turnspiller: +10'); }
+  if (matchesAnswer(simple.most_yellow, afun.most_yellow))  { pts += 6;  bd.push('Gule kort: +6'); }
+  if (matchesAnswer(simple.most_goals_team, afun.most_goals_team)) { pts += 8; bd.push('Flest mål (hold): +8'); }
   return { pts, breakdown: bd };
 }

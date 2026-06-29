@@ -228,8 +228,22 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
     });
   };
 
-  const setFunResult = (id, val) => {
-    setResultState(prev => ({ ...prev, fun: { ...(prev.fun || {}), [id]: val } }));
+  const toggleFunOption = (id, option) => {
+    setResultState(prev => {
+      const cur = prev.fun?.[id];
+      let next;
+      if (Array.isArray(cur)) {
+        if (cur.includes(option)) next = cur.filter(x => x !== option);
+        else next = [...cur, option];
+        if (next.length === 0) next = null;
+        else if (next.length === 1) next = next[0];
+      } else {
+        if (!cur) next = option;
+        else if (cur === option) next = null;
+        else next = [cur, option];
+      }
+      return { ...prev, fun: { ...(prev.fun || {}), [id]: next } };
+    });
   };
 
   const toggleThirdGroup = (groupKey) => {
@@ -447,13 +461,18 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
                 <span className="fun-title">{q.title}</span>
               </div>
               <div className="select-wrap">
-                <select
-                  value={(resultState.fun || {})[q.id] || ''}
-                  onChange={e => setFunResult(q.id, e.target.value || null)}
-                >
-                  <option value="">– Vælg facit –</option>
-                  {q.options.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+                <div className="multi-options">
+                  {q.options.map(o => {
+                    const cur = resultState.fun?.[q.id];
+                    const checked = Array.isArray(cur) ? cur.includes(o) : cur === o;
+                    return (
+                      <label key={o} className="checkbox-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
+                        <input type="checkbox" checked={checked || false} onChange={() => toggleFunOption(q.id, o)} />
+                        <span>{o}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ))}
