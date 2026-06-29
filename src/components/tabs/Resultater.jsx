@@ -297,6 +297,43 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
 
   const third = Array.isArray(resultState.third) ? resultState.third : [];
 
+  const isTeamQuestion = (q) => {
+    // Heuristic: all options are team names from ALL_TEAMS
+    return q.options && q.options.every(o => ALL_TEAMS.includes(o));
+  };
+
+  const suggestFun = (id, type) => {
+    // type: 'champion' | 'finalists' | 'top3' | 'clear'
+    setResultState(prev => {
+      const next = { ...(prev || {}) };
+      const fin = prev.final?.['fin'] || null;
+      const sfVals = Object.values(prev.sf || {}).filter(Boolean);
+      const bronzeW = prev.bronze?.['bronze_w'] || null;
+      if (type === 'clear') {
+        if (next.fun) delete next.fun[id];
+        return next;
+      }
+      // Build ranked object where appropriate
+      if (type === 'champion') {
+        next.fun = { ...(next.fun || {}), [id]: fin || null };
+        return next;
+      }
+      if (type === 'finalists') {
+        const runner = sfVals.find(t => t !== fin) || null;
+        const p1 = fin || null;
+        const p2 = runner || null;
+        next.fun = { ...(next.fun || {}), [id]: { p1: p1 || null, p2: p2 || null } };
+        return next;
+      }
+      if (type === 'top3') {
+        const runner = sfVals.find(t => t !== fin) || null;
+        next.fun = { ...(next.fun || {}), [id]: { p1: fin || null, p2: runner || null, p3: bronzeW || null } };
+        return next;
+      }
+      return next;
+    });
+  };
+
   return (
     <div>
       <div className="admin-auth">
@@ -489,6 +526,16 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
               <div className="fun-card-header">
                 <span className="fun-title">{q.title}</span>
               </div>
+              {/* Suggestion helpers: only for team-based questions */}
+              {isTeamQuestion(q) && (
+                <div style={{ margin: '8px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <small style={{ color: '#94a3b8' }}>Forslag:</small>
+                  <button className="btn-ghost btn-sm" onClick={() => suggestFun(q.id, 'champion')} type="button">Mester</button>
+                  <button className="btn-ghost btn-sm" onClick={() => suggestFun(q.id, 'finalists')} type="button">Finalister</button>
+                  <button className="btn-ghost btn-sm" onClick={() => suggestFun(q.id, 'top3')} type="button">Top 3</button>
+                  <button className="btn-ghost btn-sm" onClick={() => suggestFun(q.id, 'clear')} type="button">Ryd</button>
+                </div>
+              )}
               <div className="select-wrap" style={{ display: 'flex', gap: 12 }}>
                 <div style={{ minWidth: 40 }}><strong>1</strong></div>
                 <div style={{ minWidth: 40 }}><strong>2</strong></div>
