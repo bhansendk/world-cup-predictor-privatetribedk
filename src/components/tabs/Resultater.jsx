@@ -275,6 +275,48 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
     });
   };
 
+  const setFunRankValue = (id, pos, value) => {
+    setResultState(prev => {
+      const cur = prev.fun?.[id] || {};
+      const next = { ...(prev.fun || {}), [id]: { ...(typeof cur === 'object' ? cur : { p1: cur }) } };
+      // normalize input
+      const v = value || null;
+      // remove value from other positions to avoid duplicates
+      ['p1', 'p2', 'p3'].forEach(p => {
+        if (p === pos) return;
+        if (next[id] && next[id][p] === v) next[id][p] = null;
+      });
+      next[id] = { ...(next[id] || {}), [pos]: v };
+      return { ...prev, fun: next };
+    });
+  };
+
+  const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+
+  const setFunRankMulti = (id, pos, values) => {
+    setResultState(prev => {
+      const cur = prev.fun?.[id];
+      const ranked = {
+        p1: cur && typeof cur === 'object' && cur.p1 ? _toArray(cur.p1) : (cur ? _toArray(cur) : []),
+        p2: cur && typeof cur === 'object' && cur.p2 ? _toArray(cur.p2) : [],
+        p3: cur && typeof cur === 'object' && cur.p3 ? _toArray(cur.p3) : []
+      };
+      const v = (values && values.length) ? values.slice() : [];
+      // remove chosen values from other positions to avoid duplicates
+      ['p1','p2','p3'].forEach(p => {
+        if (p === pos) return;
+        ranked[p] = ranked[p].filter(x => !v.includes(x));
+      });
+      ranked[pos] = v;
+      const nextRanked = {
+        p1: ranked.p1.length ? ranked.p1 : null,
+        p2: ranked.p2.length ? ranked.p2 : null,
+        p3: ranked.p3.length ? ranked.p3 : null
+      };
+      return { ...prev, fun: { ...(prev.fun || {}), [id]: nextRanked } };
+    });
+  };
+
   const toggleThirdGroup = (groupKey) => {
     setResultState(prev => {
       const current = Array.isArray(prev.third) ? prev.third : [];
@@ -542,42 +584,25 @@ function AdminPanel({ adminUpdate, adminVerify, adminLogout, isAdmin, adminPassw
                 <div style={{ minWidth: 40 }}><strong>3</strong></div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      {q.options.map(o => {
-                        const cur = resultState.fun?.[q.id];
-                        const p1 = cur && typeof cur === 'object' && cur.p1 ? (Array.isArray(cur.p1) ? cur.p1 : [cur.p1]) : [];
-                        const checked = p1.includes(o);
+                    <div style={{ flex: 1, display: 'flex', gap: 12 }}>
+                      {/* Single-select dropdowns for p1/p2/p3 to avoid multi-picks */}
+                      {['p1','p2','p3'].map(pos => {
+                        const cur = resultState.fun?.[q.id] || {};
+                        const curArr = (cur && typeof cur === 'object' && cur[pos]) ? _toArray(cur[pos]) : (cur && pos === 'p1' && typeof cur === 'string' ? [cur] : []);
+                        const otherSel = ['p1','p2','p3'].filter(p => p !== pos).flatMap(p => {
+                          const v = (cur && typeof cur === 'object' && cur[p]) || null;
+                          return _toArray(v);
+                        });
+                        const opts = q.options.filter(o => !otherSel.includes(o) || curArr.includes(o));
                         return (
-                          <label key={o + '_1'} className="checkbox-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
-                            <input type="checkbox" checked={checked || false} onChange={() => toggleFunRankOption(q.id, 'p1', o)} />
-                            <span>{o}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      {q.options.map(o => {
-                        const cur = resultState.fun?.[q.id];
-                        const p2 = cur && typeof cur === 'object' && cur.p2 ? (Array.isArray(cur.p2) ? cur.p2 : [cur.p2]) : [];
-                        const checked = p2.includes(o);
-                        return (
-                          <label key={o + '_2'} className="checkbox-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
-                            <input type="checkbox" checked={checked || false} onChange={() => toggleFunRankOption(q.id, 'p2', o)} />
-                            <span>{o}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      {q.options.map(o => {
-                        const cur = resultState.fun?.[q.id];
-                        const p3 = cur && typeof cur === 'object' && cur.p3 ? (Array.isArray(cur.p3) ? cur.p3 : [cur.p3]) : [];
-                        const checked = p3.includes(o);
-                        return (
-                          <label key={o + '_3'} className="checkbox-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 12 }}>
-                            <input type="checkbox" checked={checked || false} onChange={() => toggleFunRankOption(q.id, 'p3', o)} />
-                            <span>{o}</span>
-                          </label>
+                          <div key={pos} style={{ flex: 1 }}>
+                            <select multiple size={Math.min(8, q.options.length)} value={curArr} onChange={e => {
+                              const sel = Array.from(e.target.selectedOptions).map(o => o.value);
+                              setFunRankMulti(q.id, pos, sel);
+                            }}>
+                              {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </div>
                         );
                       })}
                     </div>
