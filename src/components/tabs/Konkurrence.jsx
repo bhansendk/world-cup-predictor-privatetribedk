@@ -253,7 +253,9 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
       if (isSimple) return { pts: -1, breakdown: [] };
       return calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
     }
-    if (isSimple) return calcSimpleScore(prediction, AR);
+    // Only short-circuit for simple-mode when NOT showing the 'locked' view;
+    // locked view must remove Sjove tips even for simple-mode predictions.
+    if (isSimple && leaderboardView !== 'locked') return calcSimpleScore(prediction, AR);
     if (leaderboardView === 'locked') {
       // For 'locked' view we want points locked so far excluding Sjove tips.
       const total = calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
@@ -379,7 +381,8 @@ export default function KonkurrenceTab({
         return calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR).pts;
       }
 
-      if (c.mode === 'simple') return calcSimpleScore(c.prediction, AR).pts;
+      // For 'locked' we must still subtract Sjove tips points even for simple-mode
+      if (c.mode === 'simple' && leaderboardView !== 'locked') return calcSimpleScore(c.prediction, AR).pts;
       // default 'all' view: compute full score
       if (leaderboardView === 'locked') {
         const total = calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR);
