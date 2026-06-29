@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { calcScore, calcSimpleScore, extractSimpleFromAdvanced } from '../../lib/scoring.js';
-import { FUN_QUESTIONS, GROUPS } from '../../data/wc2026.js';
+import { FUN_QUESTIONS, GROUPS, FUN_PTS } from '../../data/wc2026.js';
 import BracketTab from './Bracket.jsx';
 
 // Reveal: 1. juni 2026 kl. 21:00 CEST = 19:00 UTC
@@ -254,6 +254,27 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
       return calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
     }
     if (isSimple) return calcSimpleScore(prediction, AR);
+    if (leaderboardView === 'locked') {
+      // For 'locked' view we want points locked so far excluding Sjove tips.
+      const total = calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
+      // compute fun points separately so we can subtract them
+      let funPts = 0;
+      if (AR && AR.fun) {
+        const actualFun = AR.fun || {};
+        const predFun = prediction?.fun || {};
+        const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+        Object.entries(FUN_PTS).forEach(([id, p]) => {
+          const predicted = _toArray(predFun[id]);
+          const actual = _toArray(actualFun[id]);
+          if (predicted.length && actual.length && predicted.some(x => actual.includes(x))) {
+            funPts += p;
+          }
+        });
+      }
+      // Remove 'Sjove tips' from breakdown for locked view
+      const breakdownNoFun = (total.breakdown || []).filter(b => !b.startsWith('Sjove tips'));
+      return { pts: total.pts - funPts, breakdown: breakdownNoFun };
+    }
     return calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
   }, [AR, prediction, simplePrediction, leaderboardView, isSimple]);
 
@@ -359,6 +380,25 @@ export default function KonkurrenceTab({
       }
 
       if (c.mode === 'simple') return calcSimpleScore(c.prediction, AR).pts;
+      // default 'all' view: compute full score
+      if (leaderboardView === 'locked') {
+        const total = calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR);
+        // subtract fun points
+        let funPts = 0;
+        if (AR && AR.fun) {
+          const actualFun = AR.fun || {};
+          const predFun = c.prediction?.fun || {};
+          const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+          Object.entries(FUN_PTS).forEach(([id, p]) => {
+            const predicted = _toArray(predFun[id]);
+            const actual = _toArray(actualFun[id]);
+            if (predicted.length && actual.length && predicted.some(x => actual.includes(x))) {
+              funPts += p;
+            }
+          });
+        }
+        return total.pts - funPts;
+      }
       return calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR).pts;
     };
 
@@ -435,6 +475,13 @@ export default function KonkurrenceTab({
             type="button"
           >
             ⭐ Avanceret ({advancedCount})
+          </button>
+          <button
+            className={`lb-view-btn ${leaderboardView === 'locked' ? 'active' : ''}`}
+            onClick={() => setLeaderboardView('locked')}
+            type="button"
+          >
+            🔒 Låste point
           </button>
           <button
             className={`lb-view-btn ${leaderboardView === 'simple' ? 'active' : ''}`}
