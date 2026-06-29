@@ -98,7 +98,8 @@ export function calcScore(tips, bracket, fun, AR) {
   // Award progression points even if admin has only filled later rounds —
   // a team appearing in a later round counts as having reached earlier rounds.
   const roundOrder = ['r32', 'r16', 'qf', 'sf'];
-  const roundPoints = { r32: 2, r16: 4, qf: 6, sf: 8 };
+  // scaled so champion = 25 (previously 15). progression points scaled accordingly
+  const roundPoints = { r32: 3, r16: 7, qf: 10, sf: 13 };
   const roundLabels = { r32: 'R16 nået', r16: 'KF nået', qf: 'SF nået', sf: 'Finale nået' };
 
   for (let i = 0; i < roundOrder.length; i++) {
@@ -128,7 +129,7 @@ export function calcScore(tips, bracket, fun, AR) {
     if (rp) breakdown.push(roundLabels[key] + ': +' + rp);
   }
 
-  // Final: 6pt per correct finalist + 15pt champion
+  // Final: 10pt per correct finalist + 25pt champion (scaled up)
   const arFin  = AR.final?.['fin'] || null;
   const arFinalists = new Set(Object.values(AR.sf || {}).filter(Boolean));
   const pFinalists = new Set(Object.values(bracket.sf || {}).filter(Boolean));
@@ -136,17 +137,17 @@ export function calcScore(tips, bracket, fun, AR) {
   let fp = 0;
   pFinalists.forEach(team => {
     if (arFinalists.has(team)) {
-      pts += 6;
-      fp += 6;
+      pts += 10;
+      fp += 10;
     }
   });
-  if (arFin && pFinW === arFin) { pts += 15; fp += 15; }
+  if (arFin && pFinW === arFin) { pts += 25; fp += 25; }
   if (fp) breakdown.push('Final/Mester: +' + fp);
 
   // Bronze
   const arBronzeW = AR.bronze?.['bronze_w'] || null;
   const pBronzeW  = bracket.bronze?.['bronze_w'] || null;
-  if (arBronzeW && pBronzeW === arBronzeW) { pts += 5; breakdown.push('Bronzekamp: +5'); }
+  if (arBronzeW && pBronzeW === arBronzeW) { pts += 8; breakdown.push('Bronzekamp: +8'); }
 
   // Fun predictions
   const cFun = fun || {};
@@ -190,10 +191,10 @@ export function calcSimpleScore(simple, AR) {
     }
   };
 
-  scoreTop4Slot(simple.top1, arChamp, 15, 3, 'Mester');
-  scoreTop4Slot(simple.top2, arRunnerUp, 10, 3, 'Runner-up');
-  scoreTop4Slot(simple.top3, arSFLosers[0], 5, 3, 'Nr. 3/4');
-  scoreTop4Slot(simple.top4, arSFLosers[1], 5, 3, 'Nr. 3/4');
+  scoreTop4Slot(simple.top1, arChamp, 25, 5, 'Mester');
+  scoreTop4Slot(simple.top2, arRunnerUp, 17, 5, 'Runner-up');
+  scoreTop4Slot(simple.top3, arSFLosers[0], 8, 5, 'Nr. 3/4');
+  scoreTop4Slot(simple.top4, arSFLosers[1], 8, 5, 'Nr. 3/4');
 
   const afun = AR.fun || {};
   if (matchesAnswer(simple.topscorer, afun.topscorer))    { pts += 10; bd.push('Topscorer: +10'); }
