@@ -149,14 +149,33 @@ export function calcScore(tips, bracket, fun, AR) {
   const pBronzeW  = bracket.bronze?.['bronze_w'] || null;
   if (arBronzeW && pBronzeW === arBronzeW) { pts += 8; breakdown.push('Bronzekamp: +8'); }
 
-  // Fun predictions
+  // Fun predictions (support ranked results with p1/p2/p3 and multiple selections)
   const cFun = fun || {};
   if (AR.fun) {
     let funPts = 0;
+    const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+
     Object.entries(FUN_PTS).forEach(([id, p]) => {
       const actual = AR.fun[id];
       const predicted = cFun[id];
-      if (matchesAnswer(predicted, actual)) { pts += p; funPts += p; }
+      // Determine points for this prediction based on actual result shape
+      let awarded = 0;
+      if (!actual) {
+        // nothing to award
+      } else if (typeof actual === 'object' && (actual.p1 || actual.p2 || actual.p3)) {
+        const a1 = _toArray(actual.p1);
+        const a2 = _toArray(actual.p2);
+        const a3 = _toArray(actual.p3);
+        const pred = _toArray(predicted);
+        if (pred.some(x => a1.includes(x))) awarded = p;
+        else if (pred.some(x => a2.includes(x))) awarded = Math.round(p * 0.5);
+        else if (pred.some(x => a3.includes(x))) awarded = Math.round(p * 0.25);
+      } else {
+        // legacy: actual is single or array -> treat as first place
+        if (matchesAnswer(predicted, actual)) awarded = p;
+      }
+
+      if (awarded) { pts += awarded; funPts += awarded; }
     });
     if (funPts) breakdown.push('Sjove tips: +' + funPts);
   }
@@ -197,9 +216,27 @@ export function calcSimpleScore(simple, AR) {
   scoreTop4Slot(simple.top4, arSFLosers[1], 8, 5, 'Nr. 3/4');
 
   const afun = AR.fun || {};
-  if (matchesAnswer(simple.topscorer, afun.topscorer))    { pts += 10; bd.push('Topscorer: +10'); }
-  if (matchesAnswer(simple.golden_ball, afun.golden_ball))  { pts += 10; bd.push('Turnspiller: +10'); }
-  if (matchesAnswer(simple.most_yellow, afun.most_yellow))  { pts += 6;  bd.push('Gule kort: +6'); }
-  if (matchesAnswer(simple.most_goals_team, afun.most_goals_team)) { pts += 8; bd.push('Flest mål (hold): +8'); }
+  const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+  const applySimpleFun = (key, basePts, label) => {
+    const actual = afun[key];
+    const picked = simple[key];
+    if (!actual) return;
+    if (typeof actual === 'object' && (actual.p1 || actual.p2 || actual.p3)) {
+      const a1 = _toArray(actual.p1);
+      const a2 = _toArray(actual.p2);
+      const a3 = _toArray(actual.p3);
+      const pred = _toArray(picked);
+      if (pred.some(x => a1.includes(x))) { pts += basePts; bd.push(label + ': +' + basePts); }
+      else if (pred.some(x => a2.includes(x))) { const v = Math.round(basePts * 0.5); pts += v; bd.push(label + ' (2): +' + v); }
+      else if (pred.some(x => a3.includes(x))) { const v = Math.round(basePts * 0.25); pts += v; bd.push(label + ' (3): +' + v); }
+    } else {
+      if (matchesAnswer(picked, actual)) { pts += basePts; bd.push(label + ': +' + basePts); }
+    }
+  };
+
+  applySimpleFun('topscorer', 10, 'Topscorer');
+  applySimpleFun('golden_ball', 10, 'Turnspiller');
+  applySimpleFun('most_yellow', 6, 'Gule kort');
+  applySimpleFun('most_goals_team', 8, 'Flest mål (hold)');
   return { pts, breakdown: bd };
 }
