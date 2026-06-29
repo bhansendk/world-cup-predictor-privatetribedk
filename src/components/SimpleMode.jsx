@@ -108,10 +108,10 @@ export default function SimpleMode({
   };
 
   const top4 = [
-    { key: 'top1', label: '🥇 Mester (15 pt)' },
-    { key: 'top2', label: '🥈 Runner-up (10 pt)' },
-    { key: 'top3', label: '🥉 Nr. 3 (5 pt)' },
-    { key: 'top4', label: '4️⃣ Nr. 4 (5 pt)' },
+    { key: 'top1', label: '🥇 Mester (25 pt)' },
+    { key: 'top2', label: '🥈 Runner-up (17 pt)' },
+    { key: 'top3', label: '🥉 Nr. 3 (8 pt)' },
+    { key: 'top4', label: '4️⃣ Nr. 4 (8 pt)' },
   ];
 
   const funShared = [
@@ -150,10 +150,10 @@ export default function SimpleMode({
       <div className="section-card">
         <h2>📘 Pointsystem - Hurtig mode</h2>
         <ul className="points-list">
-          <li>Mester korrekt: 15 point</li>
-          <li>Runner-up korrekt: 10 point</li>
-          <li>Nr. 3 og Nr. 4 korrekt: 5 point hver</li>
-          <li>Hold i top 4 men forkert placering: 3 point</li>
+            <li>Mester korrekt: 25 point</li>
+            <li>Runner-up korrekt: 17 point</li>
+            <li>Nr. 3 og Nr. 4 korrekt: 8 point hver</li>
+            <li>Hold i top 4 men forkert placering: 5 point</li>
           <li>Topscorer (spiller): 10 point</li>
           <li>Gyldne Bold (spiller): 10 point</li>
           <li>Flest gule kort (hold): 6 point</li>

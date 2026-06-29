@@ -130,9 +130,9 @@ export default function AdvancedMode(props) {
         <ul className="points-list">
           <li>Grupper: 1./2./3. plads giver 3/2/2 point, men du mister 1 point pr. forkert placering (min. 1 pt for hold der går videre)</li>
           <li>8 bedste 3'ere: 2 point pr. korrekt gruppe</li>
-          <li>Bracket: point gives for hvor langt et hold kommer (ikke præcis kamp/slot): R16 = 2, KF = 4, SF = 6, Finale = 8</li>
-          <li>Finale: korrekt finalist = 6 point pr. hold, mester = 15 point</li>
-          <li>Bronzekamp: korrekt vinder = 5 point</li>
+          <li>Bracket: point gives for hvor langt et hold kommer (ikke præcis kamp/slot): R16 = 3, KF = 7, SF = 10, Finale = 13</li>
+          <li>Finale: korrekt finalist = 10 point pr. hold, mester = 25 point</li>
+          <li>Bronzekamp: korrekt vinder = 8 point</li>
           <li>Sjove tips: point gives pr. spørgsmål (inkl. spillerforudsigelser som Topscorer og Gyldne Bold)</li>
         </ul>
       </div>
