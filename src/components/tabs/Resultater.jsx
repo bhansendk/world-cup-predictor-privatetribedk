@@ -17,10 +17,10 @@ function MultiSelectDropdown({ options, value = [], onChange, placeholder = '–
         {value && value.length ? value.join(', ') : placeholder}
       </button>
       {open && (
-        <div style={{ position: 'absolute', zIndex: 50, background: '#fff', border: '1px solid #e5e7eb', maxHeight: 220, overflow: 'auto', boxShadow: '0 6px 18px rgba(0,0,0,0.08)', width: '100%' }}>
+        <div style={{ position: 'absolute', zIndex: 9999, background: '#fff', border: '1px solid #e5e7eb', maxHeight: 340, overflow: 'auto', boxShadow: '0 6px 18px rgba(0,0,0,0.08)', minWidth: 320, maxWidth: 'min(90vw,640px)', whiteSpace: 'normal', padding: 6 }}>
           {options.map(o => (
-            <label key={o} style={{ display: 'block', padding: '6px 8px', cursor: 'pointer' }}>
-              <input type="checkbox" checked={(value || []).includes(o)} onChange={() => handleCheck(o)} /> <span style={{ marginLeft: 8 }}>{o}</span>
+            <label key={o} style={{ display: 'block', padding: '8px 10px', cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.3 }}>
+              <input type="checkbox" checked={(value || []).includes(o)} onChange={() => handleCheck(o)} /> <span style={{ marginLeft: 8, wordBreak: 'break-word' }}>{o}</span>
             </label>
           ))}
           <div style={{ padding: 6, textAlign: 'right' }}>
