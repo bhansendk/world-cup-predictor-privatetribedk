@@ -55,6 +55,44 @@ function getSimplePrediction(mode, prediction) {
   return extractSimpleFromAdvanced(prediction?.bracket || {}, prediction?.fun || {});
 }
 
+function computeLockedScore(prediction, AR, isSimple) {
+  if (!prediction) return { pts: 0, breakdown: [] };
+  // Simple-mode: use calcSimpleScore and strip fun-related breakdown entries
+  if (isSimple) {
+    const total = calcSimpleScore(prediction, AR);
+    const funLabels = ['Topscorer', 'Turnspiller', 'Gule kort', 'Flest mål (hold)'];
+    let funPts = 0;
+    (total.breakdown || []).forEach(b => {
+      funLabels.forEach(label => {
+        if (b.startsWith(label)) {
+          const m = b.match(/\+(\d+)/);
+          if (m) funPts += parseInt(m[1], 10);
+        }
+      });
+    });
+    const breakdownNoFun = (total.breakdown || []).filter(b => !funLabels.some(l => b.startsWith(l)));
+    return { pts: total.pts - funPts, breakdown: breakdownNoFun };
+  }
+
+  // Advanced: use calcScore and subtract Sjove tips pts
+  const total = calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
+  let funPts = 0;
+  if (AR && AR.fun) {
+    const actualFun = AR.fun || {};
+    const predFun = prediction?.fun || {};
+    const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+    Object.entries(FUN_PTS).forEach(([id, p]) => {
+      const predicted = _toArray(predFun[id]);
+      const actual = _toArray(actualFun[id]);
+      if (predicted.length && actual.length && predicted.some(x => actual.includes(x))) {
+        funPts += p;
+      }
+    });
+  }
+  const breakdownNoFun = (total.breakdown || []).filter(b => !b.startsWith('Sjove tips'));
+  return { pts: total.pts - funPts, breakdown: breakdownNoFun };
+}
+
 function groupTeamsWithPlacement(groupKey, groupPrediction) {
   const teams = GROUPS[groupKey]?.teams || [];
   const p1 = groupPrediction?.p1 || null;
@@ -257,42 +295,7 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
     // locked view must remove Sjove tips even for simple-mode predictions.
     if (isSimple && leaderboardView !== 'locked') return calcSimpleScore(prediction, AR);
     if (leaderboardView === 'locked') {
-      // For 'locked' view we want points locked so far excluding Sjove tips.
-      // Handle simple-mode predictions separately (they use calcSimpleScore)
-      if (isSimple) {
-        const total = calcSimpleScore(prediction, AR);
-        const funLabels = ['Topscorer', 'Turnspiller', 'Gule kort', 'Flest mål (hold)'];
-        let funPts = 0;
-        (total.breakdown || []).forEach(b => {
-          funLabels.forEach(label => {
-            if (b.startsWith(label)) {
-              const m = b.match(/\+(\d+)/);
-              if (m) funPts += parseInt(m[1], 10);
-            }
-          });
-        });
-        const breakdownNoFun = (total.breakdown || []).filter(b => !funLabels.some(l => b.startsWith(l)));
-        return { pts: total.pts - funPts, breakdown: breakdownNoFun };
-      }
-
-      const total = calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
-      // compute fun points separately so we can subtract them
-      let funPts = 0;
-      if (AR && AR.fun) {
-        const actualFun = AR.fun || {};
-        const predFun = prediction?.fun || {};
-        const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
-        Object.entries(FUN_PTS).forEach(([id, p]) => {
-          const predicted = _toArray(predFun[id]);
-          const actual = _toArray(actualFun[id]);
-          if (predicted.length && actual.length && predicted.some(x => actual.includes(x))) {
-            funPts += p;
-          }
-        });
-      }
-      // Remove 'Sjove tips' from breakdown for locked view
-      const breakdownNoFun = (total.breakdown || []).filter(b => !b.startsWith('Sjove tips'));
-      return { pts: total.pts - funPts, breakdown: breakdownNoFun };
+      return computeLockedScore(prediction, AR, isSimple);
     }
     return calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
   }, [AR, prediction, simplePrediction, leaderboardView, isSimple]);
@@ -404,37 +407,7 @@ export default function KonkurrenceTab({
       if (c.mode === 'simple' && leaderboardView !== 'locked') return calcSimpleScore(c.prediction, AR).pts;
       // default 'all' view: compute full score
       if (leaderboardView === 'locked') {
-        // For simple-mode predictions use calcSimpleScore and strip simple fun entries
-        if (c.mode === 'simple') {
-          const total = calcSimpleScore(c.prediction, AR);
-          const funLabels = ['Topscorer', 'Turnspiller', 'Gule kort', 'Flest mål (hold)'];
-          let funPts = 0;
-          (total.breakdown || []).forEach(b => {
-            funLabels.forEach(label => {
-              if (b.startsWith(label)) {
-                const m = b.match(/\+(\d+)/);
-                if (m) funPts += parseInt(m[1], 10);
-              }
-            });
-          });
-          return total.pts - funPts;
-        }
-        const total = calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR);
-        // subtract fun points
-        let funPts = 0;
-        if (AR && AR.fun) {
-          const actualFun = AR.fun || {};
-          const predFun = c.prediction?.fun || {};
-          const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
-          Object.entries(FUN_PTS).forEach(([id, p]) => {
-            const predicted = _toArray(predFun[id]);
-            const actual = _toArray(actualFun[id]);
-            if (predicted.length && actual.length && predicted.some(x => actual.includes(x))) {
-              funPts += p;
-            }
-          });
-        }
-        return total.pts - funPts;
+        return computeLockedScore(c.prediction, AR, c.mode === 'simple').pts;
       }
       return calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR).pts;
     };
