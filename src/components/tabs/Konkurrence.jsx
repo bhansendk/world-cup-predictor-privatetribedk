@@ -258,6 +258,23 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
     if (isSimple && leaderboardView !== 'locked') return calcSimpleScore(prediction, AR);
     if (leaderboardView === 'locked') {
       // For 'locked' view we want points locked so far excluding Sjove tips.
+      // Handle simple-mode predictions separately (they use calcSimpleScore)
+      if (isSimple) {
+        const total = calcSimpleScore(prediction, AR);
+        const funLabels = ['Topscorer', 'Turnspiller', 'Gule kort', 'Flest mål (hold)'];
+        let funPts = 0;
+        (total.breakdown || []).forEach(b => {
+          funLabels.forEach(label => {
+            if (b.startsWith(label)) {
+              const m = b.match(/\+(\d+)/);
+              if (m) funPts += parseInt(m[1], 10);
+            }
+          });
+        });
+        const breakdownNoFun = (total.breakdown || []).filter(b => !funLabels.some(l => b.startsWith(l)));
+        return { pts: total.pts - funPts, breakdown: breakdownNoFun };
+      }
+
       const total = calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
       // compute fun points separately so we can subtract them
       let funPts = 0;
@@ -387,6 +404,21 @@ export default function KonkurrenceTab({
       if (c.mode === 'simple' && leaderboardView !== 'locked') return calcSimpleScore(c.prediction, AR).pts;
       // default 'all' view: compute full score
       if (leaderboardView === 'locked') {
+        // For simple-mode predictions use calcSimpleScore and strip simple fun entries
+        if (c.mode === 'simple') {
+          const total = calcSimpleScore(c.prediction, AR);
+          const funLabels = ['Topscorer', 'Turnspiller', 'Gule kort', 'Flest mål (hold)'];
+          let funPts = 0;
+          (total.breakdown || []).forEach(b => {
+            funLabels.forEach(label => {
+              if (b.startsWith(label)) {
+                const m = b.match(/\+(\d+)/);
+                if (m) funPts += parseInt(m[1], 10);
+              }
+            });
+          });
+          return total.pts - funPts;
+        }
         const total = calcScore(c.prediction?.g, c.prediction?.bracket, c.prediction?.fun, AR);
         // subtract fun points
         let funPts = 0;
