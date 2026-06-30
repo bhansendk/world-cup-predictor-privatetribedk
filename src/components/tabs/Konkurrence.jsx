@@ -74,7 +74,7 @@ function computeLockedScore(prediction, AR, isSimple) {
     return { pts: total.pts - funPts, breakdown: breakdownNoFun };
   }
 
-  // Advanced: use calcScore and subtract Sjove tips pts
+  // Advanced: use calcScore and subtract Sjove tips pts — compute awarded points
   const total = calcScore(prediction.g, prediction.bracket, prediction.fun, AR);
   let funPts = 0;
   if (AR && AR.fun) {
@@ -82,11 +82,23 @@ function computeLockedScore(prediction, AR, isSimple) {
     const predFun = prediction?.fun || {};
     const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
     Object.entries(FUN_PTS).forEach(([id, p]) => {
+      const actual = actualFun[id];
       const predicted = _toArray(predFun[id]);
-      const actual = _toArray(actualFun[id]);
-      if (predicted.length && actual.length && predicted.some(x => actual.includes(x))) {
-        funPts += p;
+      if (!actual) return;
+      let awarded = 0;
+      if (typeof actual === 'object' && (actual.p1 || actual.p2 || actual.p3)) {
+        const a1 = _toArray(actual.p1);
+        const a2 = _toArray(actual.p2);
+        const a3 = _toArray(actual.p3);
+        if (predicted.some(x => a1.includes(x))) awarded = p;
+        else if (predicted.some(x => a2.includes(x))) awarded = Math.round(p * 0.5);
+        else if (predicted.some(x => a3.includes(x))) awarded = Math.round(p * 0.25);
+      } else {
+        // legacy: actual is single or array -> treat as first place
+        const match = (v) => (Array.isArray(v) ? v : [v]);
+        if (predicted.some(x => match(actual).includes(x))) awarded = p;
       }
+      funPts += awarded;
     });
   }
   const breakdownNoFun = (total.breakdown || []).filter(b => !b.startsWith('Sjove tips'));
