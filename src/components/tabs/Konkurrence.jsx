@@ -364,7 +364,9 @@ export default function KonkurrenceTab({
       list = list.filter(c => c.mode !== 'simple');
     }
 
-    if (!(hasResults && canSeePredictions)) {
+    // If there are results we allow computing the leaderboard when either
+    // predictions are visible or the user selected the 'locked' view.
+    if (!(hasResults && (canSeePredictions || leaderboardView === 'locked'))) {
       return list;
     }
 
@@ -508,7 +510,7 @@ export default function KonkurrenceTab({
         <div className="lb-list">
           {filteredColleagues.map((c, i) => {
             const isOwn = myName && c.name.toLowerCase() === myName.toLowerCase();
-            if (!revealed && !isAdmin && !isOwn) {
+            if (!revealed && !isAdmin && !isOwn && leaderboardView !== 'locked') {
               // Show name + mode + submitted, but no prediction/score
               return (
                 <div key={c.name} className="lb-row lb-locked">
@@ -523,7 +525,7 @@ export default function KonkurrenceTab({
               <ScoreRow
                 key={c.name}
                 colleague={c}
-                AR={canSeePredictions ? AR : {}}
+                AR={(canSeePredictions || (leaderboardView === 'locked' && hasResults)) ? AR : {}}
                 rank={i + 1}
                 isOwn={!!isOwn}
                 showPrediction={canSeePredictions}
