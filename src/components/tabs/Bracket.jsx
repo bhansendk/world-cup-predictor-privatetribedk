@@ -60,10 +60,8 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
     const bronzeW  = S.bronze['bronze_w'] || null;
 
     // precompute which teams this prediction places in each round
-    // NOTE: For r32 we want the teams the user predicted to *advance* (winners),
-    // not all teams that appear in the R32 matches. Use the r32 winners array.
     const predictedByRound = {
-      r32: new Set(r32W.filter(Boolean)),
+      r32: new Set(r32Teams.flatMap(t => [t.a, t.b].filter(Boolean))),
       r16: new Set(Object.values(S.r16 || {}).filter(Boolean)),
       qf:  new Set(Object.values(S.qf || {}).filter(Boolean)),
       sf:  new Set(Object.values(S.sf || {}).filter(Boolean)),
@@ -77,17 +75,10 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
     if (AR) {
       const ag = AR.g || {};
       const athird = AR.third || [];
-      // For actual progression we consider the teams that actually *advanced* from
-      // R32 => those appear in AR.r16. Fallback to resolving slots only if AR.r16 missing.
-      const ar16Vals = Object.values(AR.r16 || {}).filter(Boolean);
-      if (ar16Vals.length > 0) {
-        ar16Vals.forEach(t => actualByRound.r32.add(t));
-      } else {
-        const ar32Teams = R32.map(m => ({ a: resolveSlot(m.a, ag, athird), b: resolveSlot(m.b, ag, athird) }));
-        ar32Teams.forEach(t => {
-          [t.a, t.b].filter(Boolean).forEach(x => actualByRound.r32.add(x));
-        });
-      }
+      const ar32Teams = R32.map(m => ({ a: resolveSlot(m.a, ag, athird), b: resolveSlot(m.b, ag, athird) }));
+      ar32Teams.forEach(t => {
+        [t.a, t.b].filter(Boolean).forEach(x => actualByRound.r32.add(x));
+      });
       const roundOrder = ['r32', 'r16', 'qf', 'sf'];
       for (let i = 0; i < roundOrder.length; i++) {
         const key = roundOrder[i];
