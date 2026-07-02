@@ -98,7 +98,9 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
           if (AR) {
             const scored = teamGetsProgressionPoints(rk, t, AR);
             if (scored) cls += ' scored';
-            // when showing authoritative results in previews, do not add other color classes
+            // still highlight the user's own picks (win) in interactive bracket views
+            else if (!readOnly && w === t) cls += ' win';
+            // do not mark explicit 'lose' when showing results preview or read-only previews
           } else {
             if (w === t) cls += ' win';
             else if (w) cls += ' lose';
