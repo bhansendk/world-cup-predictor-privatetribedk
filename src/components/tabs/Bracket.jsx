@@ -69,6 +69,22 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
       bronze: new Set(Object.values(S.bronze || {}).filter(Boolean))
     };
 
+    // compute which teams actually appear in each round according to AR
+    const actualByRound = { r32: new Set(), r16: new Set(), qf: new Set(), sf: new Set(), final: new Set(), bronze: new Set() };
+    if (AR) {
+      const ag = AR.g || {};
+      const athird = AR.third || [];
+      const ar32Teams = R32.map(m => ({ a: resolveSlot(m.a, ag, athird), b: resolveSlot(m.b, ag, athird) }));
+      ar32Teams.forEach(t => {
+        [t.a, t.b].filter(Boolean).forEach(x => actualByRound.r32.add(x));
+      });
+      Object.values(AR.r16 || {}).filter(Boolean).forEach(t => actualByRound.r16.add(t));
+      Object.values(AR.qf || {}).filter(Boolean).forEach(t => actualByRound.qf.add(t));
+      Object.values(AR.sf || {}).filter(Boolean).forEach(t => actualByRound.sf.add(t));
+      Object.values(AR.final || {}).filter(Boolean).forEach(t => actualByRound.final.add(t));
+      Object.values(AR.bronze || {}).filter(Boolean).forEach(t => actualByRound.bronze.add(t));
+    }
+
     function teamGetsProgressionPoints(roundKey, team, AR) {
       if (!AR || !team) return false;
       const roundOrder = ['r32', 'r16', 'qf', 'sf'];
@@ -106,11 +122,11 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
         if (t) {
           // if actual results provided, mark slots that give progression points as 'scored'
           if (AR) {
-            const scored = teamGetsProgressionPoints(rk, t, AR) || (predictedByRound[rk] && predictedByRound[rk].has(t) && teamGetsProgressionPoints(rk, t, AR));
-            if (scored) cls += ' scored';
-            // still highlight the user's own picks (win) in interactive bracket views
+            const predictedHere = predictedByRound[rk] && predictedByRound[rk].has(t);
+            const actuallyHere = actualByRound[rk] && actualByRound[rk].has(t);
+            // score when the participant predicted this team to be in this round and it actually appears in that round
+            if (predictedHere && actuallyHere) cls += ' scored';
             else if (!readOnly && w === t) cls += ' win';
-            // do not mark explicit 'lose' when showing results preview or read-only previews
           } else {
             if (w === t) cls += ' win';
             else if (w) cls += ' lose';
