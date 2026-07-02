@@ -124,8 +124,12 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
           if (AR) {
             const predictedHere = predictedByRound[rk] && predictedByRound[rk].has(t);
             const actuallyHere = actualByRound[rk] && actualByRound[rk].has(t);
-            // score when the participant predicted this team to be in this round and it actually appears in that round
+            const roundDecided = actualByRound[rk] && actualByRound[rk].size > 0;
+            // correct prediction for that round
             if (predictedHere && actuallyHere) cls += ' scored';
+            // wrong prediction when the round is decided but the team did not appear
+            else if (predictedHere && !actuallyHere && roundDecided) cls += ' wrong';
+            // still highlight the user's own picks (win) in interactive bracket views
             else if (!readOnly && w === t) cls += ' win';
           } else {
             if (w === t) cls += ' win';

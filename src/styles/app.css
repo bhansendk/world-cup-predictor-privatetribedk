@@ -43,6 +43,7 @@ h1{font-size:2em;color:#3b82f6;margin-bottom:10px}
 .bm-slot.lose{opacity:.38}
 .bm-slot.tbd{color:#475569;cursor:default;font-style:italic}
 .bm-slot.readonly{cursor:default}
+.bm-slot.wrong{background:#4c0519;color:#fca5a5;font-weight:bold}
 .bm-slot.readonly:hover:not(.tbd){background:inherit}
 .bkt-final-wrap{display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
 .bkt-final-label{font-size:.68em;font-weight:bold;text-transform:uppercase;color:#3b82f6;text-align:center;letter-spacing:.06em;margin-bottom:8px;white-space:nowrap}
