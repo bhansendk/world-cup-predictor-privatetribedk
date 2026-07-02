@@ -290,7 +290,7 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
                         const advThird = (AR.third || []).includes(key);
                         if (actualRank && (actualRank <= 2 || (actualRank === 3 && advThird))) scored = true;
                       }
-                      const cls = 'pred-group-line' + (isDirect ? ' is-direct' : '') + (isThirdPick ? ' is-third-pick' : '') + (scored ? ' scored' : '');
+                      const cls = 'pred-group-line' + (scored ? ' scored' : '');
                       return (
                         <div key={`${key}-${teamName}-${place}`} className={cls}>
                           {place}) {teamName}
@@ -336,12 +336,35 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
         <>
           <div className="pred-section-title">Sjove forudsigelser ({funAnswered}/{FUN_QUESTIONS.length})</div>
           <div className="pred-grid pred-grid-wide">
-            {funRows.map(row => (
-              <div key={row.id} className="pred-item">
-                <div className="pred-item-label">{row.label}</div>
-                <div className="pred-item-value">{row.value}</div>
-              </div>
-            ))}
+            {funRows.map(row => {
+              const qid = row.id;
+              const base = FUN_PTS[qid] || 0;
+              let pct = 0;
+              if (AR && base > 0) {
+                const actual = AR.fun?.[qid];
+                const predicted = fun?.[qid];
+                const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+                if (actual && typeof actual === 'object' && (actual.p1 || actual.p2 || actual.p3)) {
+                  const a1 = _toArray(actual.p1);
+                  const a2 = _toArray(actual.p2);
+                  const a3 = _toArray(actual.p3);
+                  const pred = _toArray(predicted);
+                  if (pred.some(x => a1.includes(x))) pct = 100;
+                  else if (pred.some(x => a2.includes(x))) pct = 50;
+                  else if (pred.some(x => a3.includes(x))) pct = 25;
+                } else if (actual) {
+                  const match = (v) => (Array.isArray(v) ? v : [v]);
+                  const pred = Array.isArray(predicted) ? predicted : (predicted ? [predicted] : []);
+                  if (pred.some(x => match(actual).includes(x))) pct = 100;
+                }
+              }
+              return (
+                <div key={row.id} className="pred-item">
+                  <div className="pred-item-label">{row.label}</div>
+                  <div className={`pred-item-value${pct > 0 ? ' scored' : ''}`}>{row.value}{pct > 0 ? ` (${pct}%)` : ''}</div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

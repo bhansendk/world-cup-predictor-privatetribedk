@@ -289,10 +289,10 @@ a.lb-name-link:hover{color:#3b82f6}
 .pred-group-card { background: #0b1220; border: 1px solid #334155; border-radius: 6px; padding: 6px 8px; }
 .pred-group-title { color: #3b82f6; font-size: .78em; font-weight: 700; margin-bottom: 3px; }
 .pred-group-line { color: #cbd5e1; font-size: .75em; line-height: 1.35; }
-.pred-group-line.is-direct { color: #10b981; font-weight: 700; }
-.pred-group-line.is-third-pick { color: #fbbf24; font-weight: 700; }
-.pred-team-tag { margin-left: 6px; padding: 1px 5px; border-radius: 999px; border: 1px solid #065f46; color: #10b981; background: #022c22; font-size: .68em; font-weight: 700; }
-.pred-team-tag-third { border-color: #92400e; color: #f59e0b; background: #3a2310; }
+.pred-group-line.is-direct { color: #cbd5e1; font-weight: 600; }
+.pred-group-line.is-third-pick { color: #cbd5e1; font-weight: 600; }
+.pred-team-tag { margin-left: 6px; padding: 1px 5px; border-radius: 999px; border: 1px solid #334155; color: #94a3b8; background: #0f172a; font-size: .68em; font-weight: 600; }
+.pred-team-tag-third { border-color: #334155; color: #94a3b8; background: #0f172a; }
 .pred-selected-third { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 7px 9px; }
 .pred-third-chip-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
 .pred-third-chip { padding: 2px 8px; border-radius: 999px; font-size: .72em; font-weight: 700; color: #bfdbfe; border: 1px solid #1d4ed8; background: #172554; }
