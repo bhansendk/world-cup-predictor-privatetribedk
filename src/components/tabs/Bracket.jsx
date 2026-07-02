@@ -59,6 +59,16 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
     const sfLoser1 = sfW[1] ? (qfW[2] === sfW[1] ? qfW[3] : qfW[2]) : null;
     const bronzeW  = S.bronze['bronze_w'] || null;
 
+    // precompute which teams this prediction places in each round
+    const predictedByRound = {
+      r32: new Set(r32Teams.flatMap(t => [t.a, t.b].filter(Boolean))),
+      r16: new Set(Object.values(S.r16 || {}).filter(Boolean)),
+      qf:  new Set(Object.values(S.qf || {}).filter(Boolean)),
+      sf:  new Set(Object.values(S.sf || {}).filter(Boolean)),
+      final: new Set(Object.values(S.final || {}).filter(Boolean)),
+      bronze: new Set(Object.values(S.bronze || {}).filter(Boolean))
+    };
+
     function teamGetsProgressionPoints(roundKey, team, AR) {
       if (!AR || !team) return false;
       const roundOrder = ['r32', 'r16', 'qf', 'sf'];
@@ -96,7 +106,7 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
         if (t) {
           // if actual results provided, mark slots that give progression points as 'scored'
           if (AR) {
-            const scored = teamGetsProgressionPoints(rk, t, AR);
+            const scored = teamGetsProgressionPoints(rk, t, AR) || (predictedByRound[rk] && predictedByRound[rk].has(t) && teamGetsProgressionPoints(rk, t, AR));
             if (scored) cls += ' scored';
             // still highlight the user's own picks (win) in interactive bracket views
             else if (!readOnly && w === t) cls += ' win';
@@ -216,7 +226,7 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
     const scale = Math.min(1, available / naturalW);
     container.style.zoom = scale.toFixed(4);
     container.parentElement.style.minHeight = Math.ceil((8 * H + 45) * scale) + 'px';
-  }, [S, onPick]);
+  }, [S, onPick, AR]);
 
   useEffect(() => {
     renderBracket();
