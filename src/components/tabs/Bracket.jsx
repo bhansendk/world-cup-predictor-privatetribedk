@@ -98,8 +98,7 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
           if (AR) {
             const scored = teamGetsProgressionPoints(rk, t, AR);
             if (scored) cls += ' scored';
-            else if (w === t) cls += ' win';
-            // do not mark explicit 'lose' when showing results preview
+            // when showing authoritative results in previews, do not add other color classes
           } else {
             if (w === t) cls += ' win';
             else if (w) cls += ' lose';
