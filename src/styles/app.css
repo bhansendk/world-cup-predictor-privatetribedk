@@ -114,6 +114,9 @@ label{display:block;margin-bottom:8px;color:#3b82f6;font-weight:bold}
 .preview-group{background:#0f172a;border:1px solid #334155;border-radius:5px;padding:6px 8px;font-size:.8em}
 .preview-group .pg-key{color:#3b82f6;font-weight:700;margin-bottom:3px}
 .preview-group .pg-team{color:#94a3b8;padding:1px 0}
+.pred-item-value.scored { background: #064e3b; color: #10b981; font-weight: 700; padding: 4px 6px; border-radius: 4px; display: inline-block; }
+.pred-group-line.scored { background: rgba(6,78,59,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.12); padding: 6px 8px; border-radius: 6px; }
+.pred-group-line.scored .pred-team-tag { background: rgba(16,185,129,0.08); color: #10b981; border: 1px solid rgba(16,185,129,0.12); }
 .pg-1{color:#fbbf24!important}.pg-2{color:#93c5fd!important}.pg-3{color:#6b7280!important}
 a.lb-name-link{color:inherit;text-decoration:underline dotted;cursor:pointer}
 a.lb-name-link:hover{color:#3b82f6}

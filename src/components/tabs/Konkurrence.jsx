@@ -134,13 +134,57 @@ function predictionToBracketState(prediction) {
   };
 }
 
-function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabChange, onAdvancedTabChange }) {
+function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabChange, onAdvancedTabChange, AR }) {
   if (!prediction) return null;
 
   const simplePrediction = getSimplePrediction(mode, prediction);
   const hasAdvanced = mode !== 'simple';
 
   if (!hasAdvanced || mainTab === 'simple') {
+    const afun = AR?.fun || {};
+    const arChamp    = AR?.final?.['fin'] || null;
+    const arSF0      = AR?.sf?.['sf_0'] || null, arSF1 = AR?.sf?.['sf_1'] || null;
+    const arRunnerUp = arSF0 && arSF0 !== arChamp ? arSF0 : (arSF1 && arSF1 !== arChamp ? arSF1 : null);
+    const arQF0 = AR?.qf?.['qf_0'] || null, arQF1 = AR?.qf?.['qf_1'] || null;
+    const arQF2 = AR?.qf?.['qf_2'] || null, arQF3 = AR?.qf?.['qf_3'] || null;
+    const arSFL0 = arSF0 ? (arQF0 && arQF0 !== arSF0 ? arQF0 : (arQF1 && arQF1 !== arSF0 ? arQF1 : null)) : null;
+    const arSFL1 = arSF1 ? (arQF2 && arQF2 !== arSF1 ? arQF2 : (arQF3 && arQF3 !== arSF1 ? arQF3 : null)) : null;
+    const arSFLosers = [arSFL0, arSFL1].filter(Boolean);
+
+    const funAwardFor = (qid, picked) => {
+      const base = FUN_PTS[qid] || 0;
+      const actual = afun[qid];
+      if (!actual) return 0;
+      const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
+      if (typeof actual === 'object' && (actual.p1 || actual.p2 || actual.p3)) {
+        const a1 = _toArray(actual.p1);
+        const a2 = _toArray(actual.p2);
+        const a3 = _toArray(actual.p3);
+        const pred = _toArray(picked);
+        if (pred.some(x => a1.includes(x))) return base;
+        if (pred.some(x => a2.includes(x))) return Math.round(base * 0.5);
+        if (pred.some(x => a3.includes(x))) return Math.round(base * 0.25);
+        return 0;
+      }
+      // legacy single/array
+      const match = (v) => (Array.isArray(v) ? v : [v]);
+      const pred = Array.isArray(picked) ? picked : (picked ? [picked] : []);
+      if (pred.some(x => match(actual).includes(x))) return base;
+      return 0;
+    };
+
+    const pctForFun = (qid, picked) => {
+      const base = FUN_PTS[qid] || 0;
+      if (!base) return 0;
+      const awarded = funAwardFor(qid, picked);
+      return Math.round(awarded / base * 100);
+    };
+
+    const inTop4 = (team) => {
+      const arTop4 = [arChamp, arRunnerUp, ...arSFLosers].filter(Boolean);
+      return team && arTop4.includes(team);
+    };
+
     return (
       <div className="pred-compact">
         {hasAdvanced && (
@@ -155,12 +199,19 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
         )}
         <div className="pred-compact-title">⚡ Simpel forudsigelse</div>
         <div className="pred-grid">
-          {SIMPLE_FIELDS.map(f => (
-            <div key={f.key} className="pred-item">
-              <div className="pred-item-label">{f.label}</div>
-              <div className="pred-item-value">{compactList(simplePrediction?.[f.key])}</div>
-            </div>
-          ))}
+          {SIMPLE_FIELDS.map(f => {
+            const val = simplePrediction?.[f.key];
+            const scored = AR && (['top1','top2','top3','top4'].includes(f.key) ? inTop4(val) : (pctForFun(f.key, val) > 0));
+            const pct = AR ? (['top1','top2','top3','top4'].includes(f.key) ? (inTop4(val) ? 100 : 0) : pctForFun(f.key, val)) : 0;
+            return (
+              <div key={f.key} className="pred-item">
+                <div className="pred-item-label">{f.label}</div>
+                <div className={`pred-item-value${scored ? ' scored' : ''}`}>
+                  {compactList(val)}{AR && pct > 0 && !['top1','top2','top3','top4'].includes(f.key) ? ` (${pct}%)` : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -220,28 +271,37 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
 
           <div className="pred-group-grid">
             {groupKeys.map(key => {
-              const group = g[key] || {};
-              const teams = groupTeamsWithPlacement(key, group);
-              return (
-                <div key={key} className="pred-group-card">
-                  <div className="pred-group-title">{key}</div>
-                  {teams.length === 0 && <div className="pred-group-line">-</div>}
-                  {teams.map((teamName, idx) => {
-                    const place = idx + 1;
-                    const isThirdPick = place === 3 && thirdSelected.has(key);
-                    const isDirect = place <= 2;
-                    const cls = 'pred-group-line' + (isDirect ? ' is-direct' : '') + (isThirdPick ? ' is-third-pick' : '');
-                    return (
-                      <div key={`${key}-${teamName}-${place}`} className={cls}>
-                        {place}) {teamName}
-                        {isDirect && <span className="pred-team-tag">Videre</span>}
-                        {isThirdPick && <span className="pred-team-tag pred-team-tag-third">3'er valgt</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                const group = g[key] || {};
+                const teams = groupTeamsWithPlacement(key, group);
+                return (
+                  <div key={key} className="pred-group-card">
+                    <div className="pred-group-title">{key}</div>
+                    {teams.length === 0 && <div className="pred-group-line">-</div>}
+                    {teams.map((teamName, idx) => {
+                      const place = idx + 1;
+                      const isThirdPick = place === 3 && thirdSelected.has(key);
+                      const isDirect = place <= 2;
+                      // determine if this pick gives points based on AR
+                      let scored = false;
+                      if (AR && teamName) {
+                        const a = (AR.g || {})[key] || {};
+                        const aRanks = { [a.p1]: 1, [a.p2]: 2, [a.p3]: 3 };
+                        const actualRank = aRanks[teamName];
+                        const advThird = (AR.third || []).includes(key);
+                        if (actualRank && (actualRank <= 2 || (actualRank === 3 && advThird))) scored = true;
+                      }
+                      const cls = 'pred-group-line' + (isDirect ? ' is-direct' : '') + (isThirdPick ? ' is-third-pick' : '') + (scored ? ' scored' : '');
+                      return (
+                        <div key={`${key}-${teamName}-${place}`} className={cls}>
+                          {place}) {teamName}
+                          {isDirect && <span className="pred-team-tag">Videre</span>}
+                          {isThirdPick && <span className="pred-team-tag pred-team-tag-third">3'er valgt</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
           </div>
 
           <div className="pred-selected-third">
@@ -266,6 +326,7 @@ function PredictionCompact({ prediction, mode, mainTab, advancedTab, onMainTabCh
               showHeader={false}
               notReadyMessage="Denne forudsigelse mangler data for at vise hele bracket'en."
               readOnly={true}
+              AR={AR}
             />
           </div>
         </>
@@ -343,6 +404,7 @@ function ScoreRow({ colleague, AR, rank, isOwn, showPrediction, leaderboardView 
               event.stopPropagation();
               setAdvancedTab(tab);
             }}
+            AR={AR}
           />
         </div>
       )}
