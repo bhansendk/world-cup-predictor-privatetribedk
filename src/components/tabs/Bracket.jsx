@@ -150,7 +150,8 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
             // correct prediction for that round
             if (predictedHere && actuallyHere) cls += ' scored';
             // wrong prediction when the round is decided but the team did not appear
-            else if (predictedHere && !actuallyHere && roundDecided) cls += ' wrong';
+            // Only mark as wrong for real teams (non-empty slots)
+            else if (predictedHere && !actuallyHere && roundDecided && t && String(t).trim() !== '') cls += ' wrong';
             // still highlight the user's own picks (win) in interactive bracket views
             else if (!readOnly && w === t) cls += ' win';
           } else {
