@@ -1,5 +1,5 @@
 import { extractSimpleFromAdvanced, calcScore, calcSimpleScore } from '../../lib/scoring.js';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { FUN_QUESTIONS, GROUPS } from '../../data/wc2026.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import {
@@ -165,6 +165,97 @@ export default function StatsTab({ serverData }) {
   }, [entries]);
 
   const results = serverData?.results || null;
+
+  // --- Team progression disagreement analysis -----------------
+  const STAGES = ['Group', 'R32', 'R16', 'QF', 'SF', 'Final', 'Champion'];
+  const [selectedTeam, setSelectedTeam] = useState(() => topChampion?.team || null);
+
+  // Build a list of all teams mentioned in GROUPS and predictions
+  const allTeams = useMemo(() => {
+    const set = new Set();
+    Object.values(GROUPS).forEach(g => (g.teams || []).forEach(t => set.add(t)));
+    // also include any teams referenced in simple champs/topscorer etc
+    entries.forEach(e => {
+      const mode = e.mode || 'simple';
+      const simple = mode === 'advanced'
+        ? extractSimpleFromAdvanced(e.prediction?.bracket || e.prediction || {}, e.prediction?.fun || {})
+        : (e.prediction || {});
+      ['top1','top2','top3','top4'].forEach(k => { if (simple[k]) set.add(simple[k]); });
+    });
+    return Array.from(set).sort();
+  }, [entries]);
+
+  // For a given prediction, return the maximal stage predicted for each team
+  function teamStagesFromPrediction(pred, mode) {
+    const map = new Map();
+    try {
+      if (!pred) return map;
+      if (mode === 'advanced') {
+        const br = pred.bracket || pred || {};
+        ['r32','r16','qf','sf'].forEach((rk, idx) => {
+          Object.values(br[rk] || {}).filter(Boolean).forEach(t => map.set(t, Math.max(map.get(t) || 0, idx + 1)));
+        });
+        // final and champion
+        Object.values(br.final || {}).filter(Boolean).forEach(t => map.set(t, Math.max(map.get(t) || 0, 5)));
+        const champ = br.final?.fin || null;
+        if (champ) map.set(champ, 6);
+        // group stage picks don't add progression here
+      } else {
+        const s = pred || {};
+        if (s.top1) map.set(s.top1, 6);
+        if (s.top2) map.set(s.top2, 5);
+        if (s.top3) map.set(s.top3, 4);
+        if (s.top4) map.set(s.top4, 4);
+      }
+    } catch (err) { }
+    return map;
+  }
+
+  // Aggregate counts per stage for each team
+  const teamStageCounts = useMemo(() => {
+    const out = new Map();
+    entries.forEach(e => {
+      const mode = e.mode || 'simple';
+      const pred = mode === 'advanced' ? e.prediction : (e.prediction || {});
+      const tmap = teamStagesFromPrediction(pred, mode);
+      // for teams not present in tmap, leave as stage 0 (unknown/Group)
+      allTeams.forEach(team => {
+        const st = tmap.has(team) ? tmap.get(team) : 0;
+        if (!out.has(team)) out.set(team, new Array(STAGES.length + 1).fill(0));
+        const arr = out.get(team);
+        arr[st] = (arr[st] || 0) + 1;
+      });
+    });
+    return out;
+  }, [entries, allTeams]);
+
+  // Compute controversial teams: high disagreement (1 - max share)
+  const controversialTeams = useMemo(() => {
+    const out = [];
+    teamStageCounts.forEach((arr, team) => {
+      const totalForTeam = arr.reduce((a,b)=>a+b,0) || 1;
+      const maxShare = Math.max(...arr) / totalForTeam;
+      const score = 1 - maxShare; // higher = more disagreement
+      out.push({ team, score, total: totalForTeam, counts: arr });
+    });
+    return out.sort((a,b) => b.score - a.score);
+  }, [teamStageCounts]);
+
+  // Export CSV for selected team's distribution
+  function exportSelectedCSV(team) {
+    if (!team) return;
+    const arr = teamStageCounts.get(team) || new Array(STAGES.length + 1).fill(0);
+    const labels = ['Unknown/Group'].concat(STAGES);
+    const rows = [['stage','count','percent']];
+    const totalForTeam = arr.reduce((a,b)=>a+b,0) || 1;
+    labels.forEach((lab,i)=> rows.push([lab, String(arr[i]||0), String(Math.round((arr[i]||0)/totalForTeam*100))+'%']));
+    const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${team.replace(/\s+/g,'_')}_distribution.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
 
   // Additional "rare correct" statistics when results are available
   let rareCorrect = null;
@@ -405,6 +496,70 @@ export default function StatsTab({ serverData }) {
             );
           })}
         </div>
+      </div>
+
+      <div className="section-card">
+        <h3>Analyse: Hvor langt kommer et hold?</h3>
+        <p>Vælg et hold for at se hvordan deltagerne fordeler sig på hvor langt holdet går.</p>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+          <select value={selectedTeam || ''} onChange={e => setSelectedTeam(e.target.value || null)} style={{ padding: '6px 8px' }}>
+            <option value="">-- vælg hold --</option>
+            {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <div style={{ color: '#94a3b8' }}>{total} bud analyseret</div>
+          <button onClick={() => exportSelectedCSV(selectedTeam || allTeams[0])} style={{ padding: '6px 10px', background: '#0f172a', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.04)' }}>Eksport CSV</button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center' }}>
+          <div style={{ fontWeight: 700 }}>Top kontroversielle hold:</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {controversialTeams.slice(0,6).map(ct => {
+              const arr = ct.counts || new Array(STAGES.length+1).fill(0);
+              const total = arr.reduce((a,b)=>a+b,0) || 1;
+              const max = Math.max(...arr);
+              return (
+                <button key={ct.team} onClick={() => setSelectedTeam(ct.team)} title={`${ct.team} — uenig score ${ct.score.toFixed(2)}`} style={{ padding: '6px 8px', background: '#0b1220', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 80, textAlign: 'left', fontSize: 13 }}>{ct.team}</div>
+                  <div style={{ width: 80, background: 'rgba(255,255,255,0.04)', height: 10, borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round((max/total)*100)}%`, height: 10, background: '#f59e0b' }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {(() => {
+          const current = selectedTeam || allTeams[0] || null;
+          if (!current) return <div>Ingen hold tilgængeligt.</div>;
+          const counts = teamStageCounts.get(current) || new Array(STAGES.length + 1).fill(0);
+          const labels = ['Ingen/Group'].concat(STAGES);
+          const dataset = counts.map((c,i) => c);
+          const colors = ['#64748b','#c084fc','#60a5fa','#34d399','#f59e0b','#fb7185','#ef4444','#7c3aed'];
+          const topIdx = dataset.reduce((mi, v, i) => v > (dataset[mi] || 0) ? i : mi, 0);
+          const totalForTeam = dataset.reduce((a,b)=>a+b,0) || 1;
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 12, alignItems: 'start' }}>
+              <div>
+                <div style={{ height: 240 }}>
+                  <Bar data={{ labels, datasets: [{ label: 'Antal', data: dataset, backgroundColor: labels.map((_,i)=>colors[i % colors.length]) }] }} options={{ indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} (${Math.round((ctx.parsed/totalForTeam)*100)}%)` } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }} />
+                </div>
+              </div>
+              <div style={{ fontSize: 13 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>{current}</div>
+                <div style={{ marginBottom: 8 }}>Mest sandsynligt: <strong>{labels[topIdx]}</strong> ({Math.round((dataset[topIdx]/totalForTeam)*100)}%)</div>
+                <div style={{ marginBottom: 8 }}>Unikhed (antal forskellige scenarier): <strong>{dataset.filter(x=>x>0).length}</strong></div>
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Tal</div>
+                  <ul style={{ paddingLeft: 16 }}>
+                    {labels.map((lab, i) => (
+                      <li key={lab} style={{ marginBottom: 6 }}>{lab}: {dataset[i]} ({pct(dataset[i], totalForTeam)})</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Top-forudsigelser fjernet */}

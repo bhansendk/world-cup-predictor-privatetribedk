@@ -177,6 +177,7 @@ export default function AdvancedMode(props) {
           updateSimple={updateSimple}
           onResetBracket={onResetBracket}
           readOnly={isLocked}
+          AR={serverData?.results || null}
         />
       )}
 

@@ -39,6 +39,7 @@ h1{font-size:2em;color:#3b82f6;margin-bottom:10px}
 .bm-slot:last-child{border-bottom:none}
 .bm-slot:hover:not(.tbd){background:#334155}
 .bm-slot.win{background:#064e3b;color:#10b981;font-weight:bold}
+.bm-slot.scored{background:#064e3b;color:#10b981;font-weight:bold}
 .bm-slot.lose{opacity:.38}
 .bm-slot.tbd{color:#475569;cursor:default;font-style:italic}
 .bm-slot.readonly{cursor:default}

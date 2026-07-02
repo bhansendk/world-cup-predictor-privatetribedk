@@ -23,7 +23,7 @@ function flagImg(team) {
   return `<span class="fi fi-${code}" style="margin-right:5px"></span>`;
 }
 
-export default function BracketTab({ S, onPick, showHeader = true, notReadyMessage, readOnly = false, onResetBracket }) {
+export default function BracketTab({ S, onPick, showHeader = true, notReadyMessage, readOnly = false, onResetBracket, AR = null }) {
   const containerRef = useRef(null);
 
   const isReady = () => {
@@ -59,12 +59,53 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
     const sfLoser1 = sfW[1] ? (qfW[2] === sfW[1] ? qfW[3] : qfW[2]) : null;
     const bronzeW  = S.bronze['bronze_w'] || null;
 
+    function teamGetsProgressionPoints(roundKey, team, AR) {
+      if (!AR || !team) return false;
+      const roundOrder = ['r32', 'r16', 'qf', 'sf'];
+      const startIdx = roundOrder.indexOf(roundKey);
+      if (startIdx === -1) {
+        // final/bronze exact checks
+        if (roundKey === 'final') {
+          return !!(AR.final && AR.final.fin && AR.final.fin === team);
+        }
+        if (roundKey === 'bronze') {
+          return !!(AR.bronze && AR.bronze.bronze_w && AR.bronze.bronze_w === team);
+        }
+        return false;
+      }
+      const actualTeams = new Set();
+      for (let j = startIdx; j < roundOrder.length; j++) {
+        const aStore = AR[roundOrder[j]] || {};
+        Object.values(aStore).filter(Boolean).forEach(t => actualTeams.add(t));
+      }
+      if (AR.final) Object.values(AR.final).filter(Boolean).forEach(t => actualTeams.add(t));
+      if (AR.bronze) Object.values(AR.bronze).filter(Boolean).forEach(t => actualTeams.add(t));
+      return actualTeams.has(team);
+    }
+
     function mkCard(id, rk, tA, tB, w) {
       const div = document.createElement('div');
       div.className = 'bm';
       [tA, tB].forEach(t => {
         const s = document.createElement('div');
-        s.className = 'bm-slot' + (readOnly ? ' readonly' : '') + (t ? (w === t ? ' win' : w ? ' lose' : '') : ' tbd');
+        // determine scored / win / lose styling when AR (results) provided
+        let cls = 'bm-slot';
+        if (readOnly) cls += ' readonly';
+        if (!t) cls += ' tbd';
+
+        if (t) {
+          // if actual results provided, mark slots that give progression points as 'scored'
+          if (AR) {
+            const scored = teamGetsProgressionPoints(rk, t, AR);
+            if (scored) cls += ' scored';
+            else if (w === t) cls += ' win';
+            // do not mark explicit 'lose' when showing results preview
+          } else {
+            if (w === t) cls += ' win';
+            else if (w) cls += ' lose';
+          }
+        }
+        s.className = cls;
         if (t) {
           s.innerHTML = flagImg(t) + '<span>' + t + '</span>';
           if (!readOnly && typeof onPick === 'function') {
