@@ -71,6 +71,7 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
 
     // compute which teams actually appear in each round according to AR
     // We build each round as a union of that round and any later rounds (matching scoring rules)
+    // Additionally include participants of later rounds derived from prior-round winners
     const actualByRound = { r32: new Set(), r16: new Set(), qf: new Set(), sf: new Set(), final: new Set(), bronze: new Set() };
     if (AR) {
       const ag = AR.g || {};
@@ -79,6 +80,9 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
       ar32Teams.forEach(t => {
         [t.a, t.b].filter(Boolean).forEach(x => actualByRound.r32.add(x));
       });
+
+      // Include explicit winners for each round and also derive participants for the next round
+      // e.g. teams listed in AR.r32 are the participants of R16, AR.r16 are participants of QF, etc.
       const roundOrder = ['r32', 'r16', 'qf', 'sf'];
       for (let i = 0; i < roundOrder.length; i++) {
         const key = roundOrder[i];
@@ -91,6 +95,13 @@ export default function BracketTab({ S, onPick, showHeader = true, notReadyMessa
         if (AR.final) Object.values(AR.final).filter(Boolean).forEach(t => actualByRound[key].add(t));
         if (AR.bronze) Object.values(AR.bronze).filter(Boolean).forEach(t => actualByRound[key].add(t));
       }
+
+      // derive participants for each subsequent round from previous-round winners
+      Object.values(AR.r32 || {}).filter(Boolean).forEach(t => actualByRound.r16.add(t));
+      Object.values(AR.r16 || {}).filter(Boolean).forEach(t => actualByRound.qf.add(t));
+      Object.values(AR.qf  || {}).filter(Boolean).forEach(t => actualByRound.sf.add(t));
+      Object.values(AR.sf  || {}).filter(Boolean).forEach(t => actualByRound.final.add(t));
+
       // ensure final/bronze sets also include their own values
       Object.values(AR.final || {}).filter(Boolean).forEach(t => actualByRound.final.add(t));
       Object.values(AR.bronze || {}).filter(Boolean).forEach(t => actualByRound.bronze.add(t));
