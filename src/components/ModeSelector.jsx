@@ -16,8 +16,8 @@ export default function ModeSelector({ onSelect }) {
           <h2>Hurtig mode</h2>
           <p>Vælg din top 4 og 4 sjove tips.<br/>Perfekt til dem der vil holde det simpelt.</p>
           <ul>
-            <li>Mester (25 pt)</li>
-            <li>Runner-up (17 pt)</li>
+            <li>Mester (15 pt)</li>
+            <li>Runner-up (10 pt)</li>
             <li>Nr. 3 &amp; 4 (8 pt)</li>
             <li>Topscorer, Gyldne Bold, m.fl.</li>
           </ul>
@@ -29,7 +29,7 @@ export default function ModeSelector({ onSelect }) {
           <p>Forudsig hele bracketen fra grupperunde til finale.<br/>For de sande fodboldfans!</p>
           <ul>
             <li>Grupperunde (2–4 pt)</li>
-            <li>Knockout-runder (3–13 pt, mester 25 pt)</li>
+            <li>Knockout-runder (R16/KF/SF/Finale: 3/5/7/10 pt, mester 15 pt)</li>
             <li>10 sjove spørgsmål</li>
             <li>Mange point på spil!</li>
           </ul>

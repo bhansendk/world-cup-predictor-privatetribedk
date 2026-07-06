@@ -142,8 +142,8 @@ vm2026-privattribedk/
 ### Hurtig mode ⚡
 | Forudsigelse | Point |
 |---|---|
-| Mester (top1) | 25 pt |
-| Runner-up (top2) | 17 pt |
+| Mester (top1) | 15 pt |
+| Runner-up (top2) | 10 pt |
 | Nr. 3 eller 4 (rigtigt semifinalist) | 8 pt |
 | Topscorer | 10 pt |
 | Gyldne Bold | 10 pt |
@@ -156,10 +156,10 @@ vm2026-privattribedk/
 | Gruppeplacering for hold der går videre (1/2 eller bedste 3'er) | 1'er=4, 2'er=3, 3'er=2 minus 1 pt pr. placering fejl |
 | Korrekt 3'er videre | 2 pt |
 | Hold der når R16 | 3 pt |
-| Hold der når kvartfinale | 7 pt |
-| Hold der når semifinale | 10 pt |
-| Hold der når finale | 13 pt |
+| Hold der når kvartfinale | 5 pt |
+| Hold der når semifinale | 7 pt |
+| Hold der når finale | 10 pt |
 | Finalist | 10 pt |
-| Mester | 25 pt |
+| Mester | 15 pt |
 | Bronzekamp-vinder | 8 pt |
 | + alle sjove tips | se app |

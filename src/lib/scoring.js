@@ -98,8 +98,9 @@ export function calcScore(tips, bracket, fun, AR) {
   // Award progression points even if admin has only filled later rounds —
   // a team appearing in a later round counts as having reached earlier rounds.
   const roundOrder = ['r32', 'r16', 'qf', 'sf'];
-  // scaled so champion = 25 (previously 15). progression points scaled accordingly
-  const roundPoints = { r32: 3, r16: 7, qf: 10, sf: 13 };
+  // progression points (per user request):
+  // R16 = 3, KF = 5, SF = 7, Finale = 10
+  const roundPoints = { r32: 3, r16: 5, qf: 7, sf: 10 };
   const roundLabels = { r32: 'R16 nået', r16: 'KF nået', qf: 'SF nået', sf: 'Finale nået' };
 
   for (let i = 0; i < roundOrder.length; i++) {
@@ -129,7 +130,7 @@ export function calcScore(tips, bracket, fun, AR) {
     if (rp) breakdown.push(roundLabels[key] + ': +' + rp);
   }
 
-  // Final: 10pt per correct finalist + 25pt champion (scaled up)
+  // Final: 10pt per correct finalist + 15pt champion
   const arFin  = AR.final?.['fin'] || null;
   const arFinalists = new Set(Object.values(AR.sf || {}).filter(Boolean));
   const pFinalists = new Set(Object.values(bracket.sf || {}).filter(Boolean));
@@ -141,7 +142,7 @@ export function calcScore(tips, bracket, fun, AR) {
       fp += 10;
     }
   });
-  if (arFin && pFinW === arFin) { pts += 25; fp += 25; }
+  if (arFin && pFinW === arFin) { pts += 15; fp += 15; }
   if (fp) breakdown.push('Final/Mester: +' + fp);
 
   // Bronze
@@ -210,8 +211,8 @@ export function calcSimpleScore(simple, AR) {
     }
   };
 
-  scoreTop4Slot(simple.top1, arChamp, 25, 5, 'Mester');
-  scoreTop4Slot(simple.top2, arRunnerUp, 17, 5, 'Runner-up');
+  scoreTop4Slot(simple.top1, arChamp, 15, 5, 'Mester');
+  scoreTop4Slot(simple.top2, arRunnerUp, 10, 5, 'Runner-up');
   scoreTop4Slot(simple.top3, arSFLosers[0], 8, 5, 'Nr. 3/4');
   scoreTop4Slot(simple.top4, arSFLosers[1], 8, 5, 'Nr. 3/4');
 
