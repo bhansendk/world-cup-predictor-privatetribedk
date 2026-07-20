@@ -198,23 +198,67 @@ export function calcSimpleScore(simple, AR) {
   const arSFLosers = [arSFL0, arSFL1].filter(Boolean);
   const arTop4 = [arChamp, arRunnerUp, ...arSFLosers].filter(Boolean);
 
-  const scoreTop4Slot = (picked, exactTeam, exactPts, wrongPosPts, exactLabel) => {
-    if (!picked) return;
-    if (exactTeam && picked === exactTeam) {
-      pts += exactPts;
-      bd.push(exactLabel + ': +' + exactPts);
-      return;
+  // Champion (top1)
+  if (simple.top1) {
+    if (simple.top1 === arChamp) {
+      pts += 15;
+      bd.push('Mester: +15');
+    } else if (simple.top1 === arRunnerUp) {
+      pts += 8;
+      bd.push('1↔2 swap: +8');
+    } else if (arTop4.includes(simple.top1)) {
+      pts += 5;
+      bd.push('Top 4 men forkert placering: +5');
     }
-    if (arTop4.includes(picked)) {
-      pts += wrongPosPts;
-      bd.push('Top 4 men forkert placering: +' + wrongPosPts);
-    }
-  };
+  }
 
-  scoreTop4Slot(simple.top1, arChamp, 12, 5, 'Mester');
-  scoreTop4Slot(simple.top2, arRunnerUp, 7, 5, 'Runner-up');
-  scoreTop4Slot(simple.top3, arSFLosers[0], 8, 5, 'Nr. 3/4');
-  scoreTop4Slot(simple.top4, arSFLosers[1], 8, 5, 'Nr. 3/4');
+  // Runner-up (top2)
+  if (simple.top2) {
+    if (simple.top2 === arRunnerUp) {
+      pts += 10;
+      bd.push('Runner-up: +10');
+    } else if (simple.top2 === arChamp) {
+      pts += 8;
+      bd.push('1↔2 swap: +8');
+    } else if (arTop4.includes(simple.top2)) {
+      pts += 5;
+      bd.push('Top 4 men forkert placering: +5');
+    }
+  }
+
+  // 3rd place (top3)
+  if (simple.top3) {
+    if (simple.top3 === arSFL0) {
+      pts += 10;
+      bd.push('Nr. 3: +10');
+    } else if (simple.top3 === arSFL1) {
+      pts += 8;
+      bd.push('3↔4 swap: +8');
+    } else if ([arChamp, arRunnerUp].includes(simple.top3)) {
+      pts += 5;
+      bd.push('Finalist (fra bronze): +5');
+    } else if (arTop4.includes(simple.top3)) {
+      pts += 5;
+      bd.push('Top 4 men forkert placering: +5');
+    }
+  }
+
+  // 4th place (top4)
+  if (simple.top4) {
+    if (simple.top4 === arSFL1) {
+      pts += 10;
+      bd.push('Nr. 4: +10');
+    } else if (simple.top4 === arSFL0) {
+      pts += 8;
+      bd.push('3↔4 swap: +8');
+    } else if ([arChamp, arRunnerUp].includes(simple.top4)) {
+      pts += 5;
+      bd.push('Finalist (fra bronze): +5');
+    } else if (arTop4.includes(simple.top4)) {
+      pts += 5;
+      bd.push('Top 4 men forkert placering: +5');
+    }
+  }
 
   const afun = AR.fun || {};
   const _toArray = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
