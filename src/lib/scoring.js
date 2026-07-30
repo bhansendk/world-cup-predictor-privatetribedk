@@ -135,14 +135,17 @@ export function calcScore(tips, bracket, fun, AR) {
   const arFinalists = new Set(Object.values(AR.sf || {}).filter(Boolean));
   const pFinalists = new Set(Object.values(bracket.sf || {}).filter(Boolean));
   const pFinW  = bracket.final?.['fin'] || null;
+  const championCorrect = !!(arFin && pFinW === arFin);
   let fp = 0;
   pFinalists.forEach(team => {
-    if (arFinalists.has(team)) {
+    // Avoid double counting: champion gets 12 as winner, not +7 finalist as well.
+    const isChampionDoubleCount = championCorrect && team === arFin;
+    if (arFinalists.has(team) && !isChampionDoubleCount) {
       pts += 7;
       fp += 7;
     }
   });
-  if (arFin && pFinW === arFin) { pts += 12; fp += 12; }
+  if (championCorrect) { pts += 12; fp += 12; }
   if (fp) breakdown.push('Final/Mester: +' + fp);
 
   // Bronze
