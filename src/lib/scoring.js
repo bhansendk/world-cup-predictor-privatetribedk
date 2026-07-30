@@ -195,8 +195,12 @@ export function calcSimpleScore(simple, AR) {
   const arQF2 = AR.qf?.['qf_2'] || null, arQF3 = AR.qf?.['qf_3'] || null;
   const arSFL0 = arSF0 ? (arQF0 && arQF0 !== arSF0 ? arQF0 : (arQF1 && arQF1 !== arSF0 ? arQF1 : null)) : null;
   const arSFL1 = arSF1 ? (arQF2 && arQF2 !== arSF1 ? arQF2 : (arQF3 && arQF3 !== arSF1 ? arQF3 : null)) : null;
-  const arSFLosers = [arSFL0, arSFL1].filter(Boolean);
-  const arTop4 = [arChamp, arRunnerUp, ...arSFLosers].filter(Boolean);
+  const arBronzeW = AR.bronze?.['bronze_w'] || null;
+  const arThird = arBronzeW || arSFL0;
+  const arFourth = arBronzeW
+    ? (arSFL0 === arBronzeW ? arSFL1 : (arSFL1 === arBronzeW ? arSFL0 : arSFL1))
+    : arSFL1;
+  const arTop4 = [arChamp, arRunnerUp, arThird, arFourth].filter(Boolean);
 
   // Champion (top1)
   if (simple.top1) {
@@ -228,10 +232,10 @@ export function calcSimpleScore(simple, AR) {
 
   // 3rd place (top3)
   if (simple.top3) {
-    if (simple.top3 === arSFL0) {
+    if (simple.top3 === arThird) {
       pts += 10;
       bd.push('Nr. 3: +10');
-    } else if (simple.top3 === arSFL1) {
+    } else if (simple.top3 === arFourth) {
       pts += 8;
       bd.push('3↔4 swap: +8');
     } else if ([arChamp, arRunnerUp].includes(simple.top3)) {
@@ -245,10 +249,10 @@ export function calcSimpleScore(simple, AR) {
 
   // 4th place (top4)
   if (simple.top4) {
-    if (simple.top4 === arSFL1) {
+    if (simple.top4 === arFourth) {
       pts += 10;
       bd.push('Nr. 4: +10');
-    } else if (simple.top4 === arSFL0) {
+    } else if (simple.top4 === arThird) {
       pts += 8;
       bd.push('3↔4 swap: +8');
     } else if ([arChamp, arRunnerUp].includes(simple.top4)) {
